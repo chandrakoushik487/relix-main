@@ -1,0 +1,29 @@
+{
+  "name": "relix-monorepo",
+  "version": "1.0.0",
+  "description": "RELIX Relief Intelligence Exchange",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "prettier": "^3.2.5"
+  },
+  "dependencies": {
+    "enhanced-resolve": "^5.20.1",
+    "firebase": "^12.12.1"
+  }
+}
