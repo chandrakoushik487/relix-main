@@ -1,6 +1,4 @@
-'use client';
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { 
   ArrowRight, 
   Map, 
@@ -8,14 +6,16 @@ import {
   Users, 
   BarChart, 
   Activity, 
+  ChevronRight,
   Shield,
   Zap,
   Globe
 } from 'lucide-react';
+import './relix_v2.css';
 
 const FeatureCard = ({ icon: Icon, title, description, delay }) => (
   <div 
-    className="glass-card p-8 group animate-fade-in" 
+    className="glass-card p-8 group" 
     style={{ animationDelay: `${delay}ms` }}
   >
     <div className="w-12 h-12 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform mb-6 border border-indigo-500/20">
@@ -26,7 +26,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay }) => (
   </div>
 );
 
-export default function LandingPage() {
+const LandingPageV2 = () => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white selection:bg-indigo-500/30 font-sans">
+    <div className="min-h-screen bg-[#030303] text-white selection:bg-indigo-500/30">
       {/* Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-500 ${
         scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-white/5 py-4' : 'bg-transparent py-6'
@@ -56,12 +56,12 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-[13px] font-semibold px-5 py-2 text-zinc-400 hover:text-white transition-all">
+            <button className="text-[13px] font-semibold px-5 py-2 text-zinc-400 hover:text-white transition-all">
               Sign In
-            </Link>
-            <Link href="/login" className="text-[13px] font-semibold px-5 py-2 rounded-full bg-white text-black hover:bg-zinc-200 transition-all">
+            </button>
+            <button className="text-[13px] font-semibold px-5 py-2 rounded-full bg-white text-black hover:bg-zinc-200 transition-all">
               Get Started
-            </Link>
+            </button>
           </div>
         </div>
       </nav>
@@ -88,13 +88,13 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <Link href="/dashboard" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_40px_rgba(99,102,241,0.3)] transition-all flex items-center justify-center gap-2 group">
+            <button className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_40px_rgba(99,102,241,0.3)] transition-all flex items-center justify-center gap-2 group">
               Launch Dashboard 
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <a href="#features" className="w-full sm:w-auto px-8 py-4 bg-zinc-900 border border-white/10 hover:border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center">
-              View Features
-            </a>
+            </button>
+            <button className="w-full sm:w-auto px-8 py-4 bg-zinc-900 border border-white/10 hover:border-white/20 text-white font-bold rounded-xl transition-all">
+              View Infrastructure
+            </button>
           </div>
         </div>
       </section>
@@ -136,7 +136,7 @@ export default function LandingPage() {
             <FeatureCard 
               icon={Cpu} 
               title="AI Triage" 
-              description="Automated incident prioritization using Gemini. Structure messy field data into actionable intelligence."
+              description="Automated incident prioritization using Claude 3.5. Structure messy field data into actionable intelligence."
               delay={100}
             />
             <FeatureCard 
@@ -199,14 +199,16 @@ export default function LandingPage() {
             </ul>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 text-[12px] font-medium text-zinc-600">
+        <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-white/5 flex flex-col md:row items-center justify-between gap-6 text-[12px] font-medium text-zinc-600">
           <p>© 2025 RELIX INTELLIGENCE. ALL RIGHTS RESERVED.</p>
           <div className="flex items-center gap-8">
-            <a href="#" className="hover:text-zinc-400 transition-colors">PRIVACY POLICY</a>
-            <a href="#" className="hover:text-zinc-400 transition-colors">TERMS OF SERVICE</a>
+            <a href="#" className="hover:text-zinc-400">PRIVACY POLICY</a>
+            <a href="#" className="hover:text-zinc-400">TERMS OF SERVICE</a>
           </div>
         </div>
       </footer>
     </div>
   );
-}
+};
+
+export default LandingPageV2;

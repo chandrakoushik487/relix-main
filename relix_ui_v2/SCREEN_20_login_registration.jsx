@@ -1,8 +1,4 @@
-'use client';
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, createUserWithEmailAndPassword } from 'firebase/auth';
 import { 
   CheckCircle2, 
   Shield, 
@@ -12,12 +8,11 @@ import {
   Activity,
   ArrowRight,
   Globe,
-  Lock,
-  AlertCircle
+  Lock
 } from 'lucide-react';
+import './relix_v2.css';
 
-export default function LoginPage() {
-  const router = useRouter();
+const LoginPageV2 = () => {
   const [role, setRole] = useState('NGO Staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,55 +20,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSignIn = async (e) => {
+  const handleSignIn = (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg('');
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, {
-        displayName: role
-      });
-      router.push('/dashboard');
-    } catch (error) {
-      setErrorMsg(error.message);
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push('/dashboard');
-    } catch (error) {
-      setErrorMsg(error.message);
-    }
-  };
-
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg("Please enter an email and password to sign up.");
-      return;
-    }
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, {
-        displayName: role
-      });
-      router.push('/dashboard');
-    } catch (error) {
-      setErrorMsg(error.message);
-      setLoading(false);
-    }
+    // Logic placeholder
+    setTimeout(() => setLoading(false), 1500);
   };
 
   return (
-    <div className="flex min-h-screen bg-[#030303] text-white overflow-hidden font-sans">
+    <div className="flex min-h-screen bg-[#030303] text-white overflow-hidden">
       
       {/* Left Panel - Brand & Visuals */}
       <div className="hidden lg:flex flex-col flex-[0.6] relative p-16 overflow-hidden border-r border-white/5">
@@ -85,11 +40,11 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
               <Activity className="text-white" size={24} />
             </div>
-            <span className="text-2xl font-bold tracking-tighter">RELIX</span>
+            <span className="text-2xl font-bold tracking-tighter font-display">RELIX</span>
           </div>
 
           <div className="max-w-xl">
-            <h1 className="text-6xl font-bold tracking-tight leading-[0.9] mb-10">
+            <h1 className="text-6xl font-bold tracking-tight leading-[0.9] mb-10 font-display">
               The Command Center<br /> 
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-600">for Human Resilience.</span>
             </h1>
@@ -111,11 +66,11 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-auto pt-20 border-t border-white/5">
-            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Intelligence Platform v2.0</p>
+            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Trusted by Leading Organizations</p>
             <div className="flex gap-8 opacity-40 grayscale contrast-125">
-              <div className="h-4 w-20 bg-zinc-800 rounded"></div>
-              <div className="h-4 w-20 bg-zinc-800 rounded"></div>
-              <div className="h-4 w-20 bg-zinc-800 rounded"></div>
+              <div className="h-6 w-24 bg-zinc-800 rounded"></div>
+              <div className="h-6 w-24 bg-zinc-800 rounded"></div>
+              <div className="h-6 w-24 bg-zinc-800 rounded"></div>
             </div>
           </div>
         </div>
@@ -127,7 +82,7 @@ export default function LoginPage() {
         
         <div className="w-full max-w-[400px] relative z-10">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold mb-2">Welcome Back</h2>
+            <h2 className="text-3xl font-bold font-display mb-2">Welcome Back</h2>
             <p className="text-zinc-500 text-sm">Enter your credentials to access RELIX</p>
           </div>
 
@@ -136,7 +91,6 @@ export default function LoginPage() {
             {['NGO Staff', 'Volunteer', 'Admin'].map((r) => (
               <button
                 key={r}
-                type="button"
                 onClick={() => setRole(r)}
                 className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider ${
                   role === r
@@ -149,21 +103,13 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {errorMsg && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-              <AlertCircle size={18} />
-              <p>{errorMsg}</p>
-            </div>
-          )}
-
           <form onSubmit={handleSignIn} className="space-y-6">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Email Address</label>
               <input
                 type="email"
-                required
                 placeholder="name@organization.org"
-                className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all text-white"
+                className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -172,14 +118,13 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
-                <button type="button" className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest">Reset?</button>
+                <a href="#" className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest">Reset?</a>
               </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  required
                   placeholder="••••••••"
-                  className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all pr-12 text-white"
+                  className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all pr-12"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -196,7 +141,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2 group disabled:opacity-50"
+              className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2 group"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
@@ -218,25 +163,23 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <button 
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 bg-zinc-900/50 border border-white/5 hover:border-white/10 text-white font-bold py-3.5 rounded-xl transition-all"
-          >
+          <button className="w-full flex items-center justify-center gap-3 bg-zinc-900/50 border border-white/5 hover:border-white/10 text-white font-bold py-3.5 rounded-xl transition-all">
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="currentColor" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="currentColor" opacity="0.8" />
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="currentColor" opacity="0.6" />
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="currentColor" opacity="0.4" />
             </svg>
-            <span className="text-sm">Google Account</span>
+            <span className="text-sm">Federated SSO</span>
           </button>
 
           <p className="mt-12 text-center text-xs font-medium text-zinc-500">
-            Authorized personnel only. <button type="button" onClick={handleSignUp} className="text-indigo-400 font-bold hover:underline">Sign Up Instead</button>
+            Authorized personnel only. <button className="text-indigo-400 font-bold hover:underline">Request access</button>
           </p>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPageV2;
