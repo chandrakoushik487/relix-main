@@ -2,6 +2,17 @@
   "projects": {
     "default": "relix-6218b"
   },
-  "targets": {},
+  "targets": {
+    "relix-6218b": {
+      "hosting": {
+        "mvp": [
+          "relix-mvp-submission"
+        ],
+        "main": [
+          "relix-6218b"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

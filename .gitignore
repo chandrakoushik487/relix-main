@@ -12,6 +12,7 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+.firebase/
 
 # =====================
 # Environment Variables
@@ -61,5 +62,14 @@ yarn-error.log*
 .vercel
 .turbo
 next-env.d.ts
+
+# =====================
+# Internal / Tooling
+# =====================
 graphify-out/
 ai-service/graphify-out/
+scratch/
+.agent/
+.agents/
+relix_ui_v2/
+skills-lock.json
