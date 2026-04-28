@@ -31,10 +31,7 @@ export default function LoginPage() {
     setErrorMsg('');
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, {
-        displayName: role
-      });
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error) {
       setErrorMsg(error.message);
