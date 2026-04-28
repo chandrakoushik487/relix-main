@@ -50,7 +50,7 @@ export default function ProfilePage() {
             <div className="flex-1 text-center md:text-left space-y-6">
               <div className="space-y-2">
                 <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  <h2 className="text-4xl font-bold text-white font-display">Chandra Koushik</h2>
+                  <h2 className="text-4xl font-bold text-white font-display">User</h2>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest self-center">
                     Verified Responder
                   </span>

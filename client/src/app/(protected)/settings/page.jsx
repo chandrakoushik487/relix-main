@@ -61,12 +61,10 @@ export default function SettingsPage() {
               <div className="glass-card p-8 space-y-8">
                 <div className="flex items-center gap-6 pb-8 border-b border-white/5">
                   <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 p-1">
-                    <div className="w-full h-full rounded-[1.4rem] bg-[#030303] flex items-center justify-center overflow-hidden">
-                      <span className="text-3xl font-bold text-white">CK</span>
-                    </div>
+                      <span className="text-3xl font-bold text-white">U</span>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-white">Chandra Koushik</h3>
+                    <h3 className="text-xl font-bold text-white">User</h3>
                     <p className="text-sm text-zinc-500">NGO Staff • District 9 Operations</p>
                     <button className="text-xs font-bold text-indigo-400 uppercase tracking-widest hover:underline">Change Avatar</button>
                   </div>
@@ -75,7 +73,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Full Name</label>
-                    <input type="text" defaultValue="Chandra Koushik" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50" />
+                    <input type="text" defaultValue="User" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Work Email</label>
