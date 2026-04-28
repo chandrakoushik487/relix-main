@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="client/public/relix_logo-removebg-preview.svg" alt="RELIX Logo" width="120" height="120" />
+  <img src="client/public/relix_logo-removebg-preview.svg" alt="RELIX Logo" width="240" height="240" />
 </p>
 
 <h1 align="center">RELIX — Relief Intelligence Exchange</h1>
