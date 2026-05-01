@@ -1,0 +1,50 @@
+steps:
+  # 1. Build & Push Server Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-server:$SHORT_SHA', './server']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-server:$SHORT_SHA']
+
+  # 2. Build & Push AI Service Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-ai:$SHORT_SHA', './ai-service']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-ai:$SHORT_SHA']
+
+  # 3. Deploy Server to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'relix-server'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-server:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+  # 4. Deploy AI Service to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'relix-ai'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-ai:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+  # 5. Deploy Firebase (Functions + Hosting)
+  - name: 'gcr.io/$PROJECT_ID/firebase'
+    args: ['deploy', '--project', '$PROJECT_ID', '--only', 'functions,hosting']
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-server:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/relix-repo/relix-ai:$SHORT_SHA'
