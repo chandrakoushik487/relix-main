@@ -2,6 +2,8 @@ import express from 'express';
 import { db } from '../config/firebase.js';
 import { asyncHandler } from '../utils/asyncWrapper.js';
 import { validateIssuePayload } from '../middleware/validateIssue.js';
+// Fix #3: import SVI engine so svi_score is calculated on every issue creation
+import { calculateBaseSVI } from '../services/sviEngine.js';
 
 const router = express.Router();
 
@@ -61,6 +63,11 @@ router.post('/', validateIssuePayload, asyncHandler(async (req, res) => {
     payload.upload_date = new Date().toISOString();
   }
 
+  // Fix #3: Calculate and store svi_score on every new issue
+  if (!payload.svi_score) {
+    payload.svi_score = calculateBaseSVI(payload.urgency_level, payload.people_affected);
+  }
+
   const docRef = await db.collection('issues').add(payload);
   const docSnapshot = await docRef.get();
   const data = { id: docSnapshot.id, ...docSnapshot.data() };
@@ -69,3 +76,6 @@ router.post('/', validateIssuePayload, asyncHandler(async (req, res) => {
 }));
 
 export default router;
+
+
+

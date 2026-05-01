@@ -52,8 +52,15 @@ router.post('/', uploadLimiter, uploadLimitMiddleware.array('documents', 5), asy
     });
   }
 
-  // Task 45: Queue job in Bull
+  // Task 45: Queue job in Bull (if available)
   // Task 47: Job States (bull implicit: waiting, active, completed, failed)
+  if (!ocrQueue) {
+    return res.status(503).json({
+      success: false,
+      error: 'Queue service unavailable. Please try again later.'
+    });
+  }
+
   const job = await ocrQueue.add({
     uploadJobId: jobId,
     files: fileData

@@ -68,31 +68,29 @@
   }
 }
 
-@layer utilities {
-  .glass-panel {
-    background: rgba(10, 10, 10, 0.7);
-    backdrop-filter: var(--glass);
-    -webkit-backdrop-filter: var(--glass);
-    border: 1px solid var(--border-subtle);
-  }
+@utility glass-panel {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+  border: 1px solid var(--border-subtle);
+}
 
-  .glass-card {
-    background: linear-gradient(135deg, rgba(15, 15, 15, 0.8) 0%, rgba(5, 5, 5, 0.8) 100%);
-    backdrop-filter: var(--glass);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
+@utility glass-card {
+  background: linear-gradient(135deg, rgba(15, 15, 15, 0.8) 0%, rgba(5, 5, 5, 0.8) 100%);
+  backdrop-filter: var(--glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  .glass-card:hover {
+  &:hover {
     border-color: var(--border-bright);
     transform: translateY(-2px);
     box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.5);
   }
+}
 
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
-  }
+@utility animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
 @keyframes fadeIn {

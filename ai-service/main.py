@@ -7,9 +7,10 @@ app = FastAPI(title="RELIX AI Service")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Node.js backend URL in production
+    # Fix #8: Restrict CORS origins instead of allowing all
+    allow_origins=["http://localhost:5000", "http://localhost:3500", "https://relix-6218b.firebaseapp.com"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 

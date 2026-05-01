@@ -1,8 +1,13 @@
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import logger from '../utils/logger.js';
 
-dotenv.config({ path: '../.env' });
+// Fix #20: Use absolute path so this config works regardless of cwd
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Initialize from GOOGLE_APPLICATION_CREDENTIALS environment variable
 // Or initialize with explicit service account JSON

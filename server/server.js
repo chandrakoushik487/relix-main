@@ -4,6 +4,8 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
 import { admin, db } from './config/firebase.js';
@@ -11,8 +13,10 @@ import { admin, db } from './config/firebase.js';
 import { connectQueue } from './config/queue.js';
 import logger from './utils/logger.js';
 
-// Load env variables (assuming server is run from monorepo root or has access to ../.env)
-dotenv.config({ path: '../.env' }); 
+// Fix #20: Use absolute path so server works regardless of cwd
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 const server = http.createServer(app);
@@ -45,6 +49,7 @@ import jobRoutes from './routes/jobRoutes.js';
 import issueRoutes from './routes/issueRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
+import { ocrQueue } from './config/queue.js';
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/jobs', jobRoutes);
@@ -55,7 +60,7 @@ app.use('/api/bulk-upload', bulkUploadRoutes);
 // Error Handling Middleware (Keep at the bottom)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4000;
 
 // Database Connection & Server Start
 const initServer = async () => {
@@ -69,7 +74,12 @@ const initServer = async () => {
     logger.warn('Firebase not fully configured yet. Running offline.', err.message);
   }
 
-  await connectQueue();
+  // Connect to Redis/Queue if available
+  if (ocrQueue) {
+    await connectQueue();
+  } else {
+    logger.warn('Skipping queue initialization - Redis not available');
+  }
   
   server.listen(PORT, () => {
     logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

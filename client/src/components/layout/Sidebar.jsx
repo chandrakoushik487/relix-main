@@ -42,7 +42,9 @@ export default function Sidebar({ userRole = 'NGO Staff' }) {
     auth.signOut();
   };
 
-  const isNGO = userRole === 'NGO Staff' || userRole === 'ADMIN' || userRole === 'Admin';
+  const isNGO = userRole === 'NGO Staff';
+  const isVolunteer = userRole === 'Volunteer';
+  const dashboardPath = isVolunteer ? '/volunteer/dashboard' : '/dashboard';
 
   return (
     <>
@@ -55,71 +57,93 @@ export default function Sidebar({ userRole = 'NGO Staff' }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto">
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 mb-4">Intelligence</p>
-          <SidebarItem 
-            icon={LayoutDashboard} 
-            label="Dashboard" 
-            href="/dashboard" 
-            active={pathname === '/dashboard'} 
+          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 mb-4">
+            {isNGO ? 'Intelligence' : 'My Work'}
+          </p>
+
+          {/* Dashboard - Different for each role */}
+          <SidebarItem
+            icon={LayoutDashboard}
+            label={isVolunteer ? 'My Dashboard' : 'Dashboard'}
+            href={dashboardPath}
+            active={pathname === dashboardPath}
           />
-          <SidebarItem 
-            icon={BarChart3} 
-            label="Analytics" 
-            href="/analytics" 
-            active={pathname === '/analytics'} 
+
+          {/* Incident Feed - NGO: full access, Volunteer: view-only */}
+          <SidebarItem
+            icon={List}
+            label="Incident Feed"
+            href="/incident-feed"
+            active={pathname === '/incident-feed'}
           />
-          <SidebarItem 
-            icon={MapIcon} 
-            label="Emergency Map" 
-            href="/emergency-map" 
-            active={pathname === '/emergency-map'} 
+
+          {/* Emergency Map - NGO: full view, Volunteer: limited view */}
+          <SidebarItem
+            icon={MapIcon}
+            label="Emergency Map"
+            href="/emergency-map"
+            active={pathname === '/emergency-map'}
           />
-          <SidebarItem 
-            icon={List} 
-            label="Incident Feed" 
-            href="/incident-feed" 
-            active={pathname === '/incident-feed'} 
-          />
+
+          {/* NGO-only items */}
           {isNGO && (
-            <SidebarItem 
-              icon={Database} 
-              label="Data Lake" 
-              href="/data-lake" 
-              active={pathname === '/data-lake'} 
+            <>
+              <SidebarItem
+                icon={BarChart3}
+                label="Analytics"
+                href="/analytics"
+                active={pathname === '/analytics'}
+              />
+              <SidebarItem
+                icon={Database}
+                label="Data Lake"
+                href="/data-lake"
+                active={pathname === '/data-lake'}
+              />
+            </>
+          )}
+
+          {/* Volunteer-only items */}
+          {isVolunteer && (
+            <SidebarItem
+              icon={Calendar}
+              label="Task Acceptance"
+              href="/volunteer/acceptance"
+              active={pathname === '/volunteer/acceptance'}
             />
           )}
-          
+
           <div className="pt-8">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 mb-4">Operations</p>
-            <SidebarItem 
-              icon={CheckCircle2} 
-              label="My Tasks" 
-              href="/tasks" 
-              active={pathname === '/tasks'} 
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 mb-4">General</p>
+            <SidebarItem
+              icon={CheckCircle2}
+              label={isVolunteer ? 'My Tasks' : 'Tasks'}
+              href={isVolunteer ? '/volunteer/tasks' : '/tasks'}
+              active={pathname === (isVolunteer ? '/volunteer/tasks' : '/tasks')}
             />
-            <SidebarItem 
-              icon={Users} 
-              label="Impact" 
-              href="/impact" 
-              active={pathname === '/impact'} 
+            <SidebarItem
+              icon={Users}
+              label="Impact"
+              href="/impact"
+              active={pathname === '/impact'}
             />
           </div>
         </nav>
 
         <div className="pt-6 border-t border-[#1A1A1A] mt-auto space-y-1">
-          <SidebarItem 
-            icon={User} 
-            label="Profile" 
-            href="/profile" 
-            active={pathname === '/profile'} 
+          <SidebarItem
+            icon={User}
+            label="Profile"
+            href="/profile"
+            active={pathname === '/profile'}
           />
-          <SidebarItem 
-            icon={Settings} 
-            label="Settings" 
-            href="/settings" 
-            active={pathname === '/settings'} 
+          <SidebarItem
+            icon={Settings}
+            label="Settings"
+            href="/settings"
+            active={pathname === '/settings'}
           />
-          <button 
+          <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-400/5 transition-all"
           >

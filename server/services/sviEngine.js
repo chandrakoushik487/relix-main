@@ -1,4 +1,4 @@
-import Issue from '../models/Issue.js';
+// Fix #6: removed unused Mongoose model import — RELIX uses Firestore, not MongoDB
 
 // Task 206 - 213: SVI Formula
 export const calculateBaseSVI = (urgency_level, people_affected) => {

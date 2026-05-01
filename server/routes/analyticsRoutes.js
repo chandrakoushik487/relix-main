@@ -1,5 +1,6 @@
 import express from 'express';
 import { db } from '../config/firebase.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -14,16 +15,16 @@ router.get('/', async (req, res) => {
     const totalSnapshot = await issuesRef.count().get();
     const total = totalSnapshot.data().count;
 
-    // Get critical issues (high urgency)
-    const criticalSnapshot = await issuesRef.where('urgency_level', '==', 'High').count().get();
+    // Fix #2a: lowercase 'high' (was 'High') - matches stored data
+    const criticalSnapshot = await issuesRef.where('urgency_level', '==', 'high').count().get();
     const critical = criticalSnapshot.data().count;
 
-    // Get assigned issues
-    const assignedSnapshot = await issuesRef.where('status', '==', 'Assigned').count().get();
+    // Fix #2b: lowercase 'assigned' (was 'Assigned') - matches stored data
+    const assignedSnapshot = await issuesRef.where('status', '==', 'assigned').count().get();
     const assigned = assignedSnapshot.data().count;
 
-    // Get pending issues
-    const unassignedSnapshot = await issuesRef.where('status', '==', 'Pending').count().get();
+    // Fix #2c: lowercase 'pending' (was 'Pending') - matches stored data
+    const unassignedSnapshot = await issuesRef.where('status', '==', 'pending').count().get();
     const unassigned = unassignedSnapshot.data().count;
 
     // Get total SVI score sum (using SVI as proxy for people affected)
@@ -39,16 +40,18 @@ router.get('/', async (req, res) => {
       data: {
         total_reports: total || 0,
         critical_issues: critical || 0,
-        total_affected: Math.round(totalAffectedCount * 100) / 100, // Round to 2 decimal places
+        total_affected: Math.round(totalAffectedCount * 100) / 100,
         assigned_operations: assigned || 0,
         pending_operations: unassigned || 0
       }
     });
 
   } catch (error) {
-    console.error('Analytics error:', error);
+    // Fix #15: use logger instead of console.error
+    logger.error('Analytics error:', error);
     res.status(500).json({ success: false, error: 'Analytics calculation failed', details: error.message });
   }
 });
 
 export default router;
+

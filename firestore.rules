@@ -2,17 +2,37 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Issues collection: authenticated users can read and create; writes restricted
+    match /issues/{issueId} {
+      // Any authenticated user (NGO, volunteer, admin) can read issues
+      allow read: if request.auth != null;
+
+      // Authenticated users can create new issues
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['description', 'problem_type', 'location', 'urgency_level', 'status']);
+
+      // Only admins or the system (server-side with admin SDK bypasses rules) can update/delete
+      allow update, delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
+    // Jobs collection: authenticated read, no client-side writes (server handles via Admin SDK)
+    match /jobs/{jobId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Admin SDK only
+    }
+
+    // Users collection: users can read/write their own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Deny everything else by default
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 5, 21);
+      allow read, write: if false;
     }
   }
 }
+
