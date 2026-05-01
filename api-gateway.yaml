@@ -1,0 +1,38 @@
+# API Gateway configuration for RELIX
+swagger: '2.0'
+info:
+  title: relix-gateway
+  description: API Gateway for RELIX Microservices
+  version: 1.0.0
+schemes:
+  - https
+produces:
+  - application/json
+paths:
+  /api/upload:
+    post:
+      summary: Get GCS Signed URL
+      operationId: getSignedUrl
+      x-google-backend:
+        address: https://relix-server-cloud-run-url/api/upload
+      responses:
+        '200':
+          description: OK
+  /api/issues:
+    get:
+      summary: Get all issues
+      operationId: getIssues
+      x-google-backend:
+        address: https://relix-server-cloud-run-url/api/issues
+      responses:
+        '200':
+          description: OK
+  /ml/process:
+    post:
+      summary: Trigger AI processing
+      operationId: processAi
+      x-google-backend:
+        address: https://relix-ai-cloud-run-url/process
+      responses:
+        '200':
+          description: OK
