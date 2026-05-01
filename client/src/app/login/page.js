@@ -2,20 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  updateProfile, 
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { 
-  CheckCircle2, 
-  Shield, 
-  RadioTower, 
-  Eye, 
-  EyeOff, 
+import {
+  CheckCircle2,
+  Shield,
+  RadioTower,
+  Eye,
+  EyeOff,
   Activity,
   ArrowRight,
   Globe,
@@ -120,7 +120,7 @@ export default function LoginPage() {
     } catch (error) {
       const msg = getAuthErrorMessage(error.code);
       setErrorMsg(msg);
-      
+
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
       if (newAttempts >= 5) {
@@ -184,7 +184,7 @@ export default function LoginPage() {
       setEmailError('Please enter a valid email address');
       return;
     }
-    
+
     try {
       await sendPasswordResetEmail(auth, email);
       setResetMessage('Password reset link sent to your email.');
@@ -198,7 +198,8 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-[#030303] text-white overflow-hidden font-sans">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-4px); }
@@ -212,7 +213,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-col flex-[0.6] relative p-16 overflow-hidden border-r border-white/5">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 via-transparent to-transparent"></div>
         <div className="absolute -bottom-20 -left-20 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[120px]"></div>
-        
+
         <div className="relative z-10 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-24">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
@@ -223,10 +224,10 @@ export default function LoginPage() {
 
           <div className="max-w-xl">
             <h1 className="text-6xl font-bold tracking-tight leading-[0.9] mb-10">
-              The Command Center<br /> 
+              The Command Center<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-600">for Human Resilience.</span>
             </h1>
-            
+
             <div className="space-y-6">
               {[
                 { icon: Shield, text: 'Enterprise-grade security for field operations' },
@@ -257,7 +258,7 @@ export default function LoginPage() {
       {/* Right Panel - Auth Form */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] opacity-20 pointer-events-none"></div>
-        
+
         <div className="w-full max-w-[400px] relative z-10">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold mb-2">Welcome Back</h2>
@@ -272,11 +273,10 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setRole(r)}
                 disabled={isFormDisabled}
-                className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider ${
-                  role === r
+                className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider ${role === r
                     ? 'bg-zinc-800 text-white border border-white/10 shadow-lg'
                     : 'text-zinc-500 hover:text-zinc-300'
-                } ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  } ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {r}
               </button>
@@ -306,9 +306,8 @@ export default function LoginPage() {
                   required
                   autoComplete="email"
                   placeholder="name@organization.org"
-                  className={`w-full bg-[#0A0A0A] border rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-1 transition-all text-white ${
-                    emailError ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20 animate-shake' : 'border-[#1A1A1A] focus:border-indigo-500/50 focus:ring-indigo-500/20'
-                  }`}
+                  className={`w-full bg-[#0A0A0A] border rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-1 transition-all text-white ${emailError ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20 animate-shake' : 'border-[#1A1A1A] focus:border-indigo-500/50 focus:ring-indigo-500/20'
+                    }`}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -322,8 +321,8 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
                   <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={handlePasswordReset}
                     className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest"
                   >
@@ -336,9 +335,8 @@ export default function LoginPage() {
                     required
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className={`w-full bg-[#0A0A0A] border rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-1 transition-all pr-12 text-white ${
-                      passwordError ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20 animate-shake' : 'border-[#1A1A1A] focus:border-indigo-500/50 focus:ring-indigo-500/20'
-                    }`}
+                    className={`w-full bg-[#0A0A0A] border rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:ring-1 transition-all pr-12 text-white ${passwordError ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20 animate-shake' : 'border-[#1A1A1A] focus:border-indigo-500/50 focus:ring-indigo-500/20'
+                      }`}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
@@ -371,6 +369,7 @@ export default function LoginPage() {
                   </>
                 )}
               </button>
+            </fieldset>
           </form>
 
           <div className="relative my-10 text-center">
@@ -382,7 +381,7 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <button 
+          <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isFormDisabled}
