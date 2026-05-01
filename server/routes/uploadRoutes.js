@@ -1,78 +1,59 @@
 import express from 'express';
-import { uploadLimitMiddleware } from '../middleware/upload.js';
 import { asyncHandler } from '../utils/asyncWrapper.js';
-import { ocrQueue } from '../config/queue.js';
-import sharp from 'sharp';
-import fs from 'fs';
-import path from 'path';
+import { Storage } from '@google-cloud/storage';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+const storage = new Storage();
+// Fallback to a default bucket if env variable is missing during development
+const bucketName = process.env.GCS_UPLOAD_BUCKET || 'relix-6218b-relix-uploads';
 
-// Utility for checking disk space (Task 48) - basic mock as os-level disk check is complex
-const checkDiskSpace = () => true; 
-
-// Task 41: Apply rate limiting: 10 requests / 15 mins (We will attach this in server.js or here)
-import rateLimit from 'express-rate-limit';
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 10,
-  message: { success: false, error: 'Upload rate limit exceeded. Max 10 requests per 15 minutes.' }
+  max: 50, // Increased limit since generating signed URLs is lightweight
+  message: { success: false, error: 'Rate limit exceeded. Try again later.' }
 });
 
-router.post('/', uploadLimiter, uploadLimitMiddleware.array('documents', 5), asyncHandler(async (req, res) => {
-  if (!checkDiskSpace()) {
-    return res.status(507).json({ success: false, error: 'Insufficient server storage.' });
+// Task 3: Refactor uploadRoutes to use GCS signed URLs
+router.post('/signed-url', uploadLimiter, asyncHandler(async (req, res) => {
+  const { fileName, contentType } = req.body;
+
+  if (!fileName || !contentType) {
+    return res.status(400).json({ success: false, error: 'fileName and contentType are required' });
   }
 
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ success: false, error: 'No files provided.' });
+  // Validate content type
+  const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (!validTypes.includes(contentType)) {
+    return res.status(400).json({ success: false, error: 'Invalid content type' });
   }
 
-  // Task 44: Unique Job ID
-  const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+  // Generate a unique filename to prevent collisions
+  const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  
+  const options = {
+    version: 'v4',
+    action: 'write',
+    expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    contentType,
+  };
 
-  const fileData = [];
+  try {
+    const [url] = await storage
+      .bucket(bucketName)
+      .file(uniqueFileName)
+      .getSignedUrl(options);
 
-  for (const file of req.files) {
-    // Task 42: Implement image integrity validation (Sharp)
-    try {
-      const metadata = await sharp(file.path).metadata();
-      if (!metadata.format) throw new Error('Invalid image');
-    } catch (err) {
-      // Clean up bad file
-      fs.unlinkSync(file.path);
-      return res.status(422).json({ success: false, error: `Image integrity check failed for ${file.originalname}` });
-    }
-    
-    fileData.push({
-      path: file.path,
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size
+    res.status(200).json({
+      success: true,
+      url,
+      fileName: uniqueFileName,
+      bucket: bucketName,
     });
+  } catch (err) {
+    console.error('Error generating signed URL:', err);
+    res.status(500).json({ success: false, error: 'Failed to generate upload URL' });
   }
-
-  // Task 45: Queue job in Bull (if available)
-  // Task 47: Job States (bull implicit: waiting, active, completed, failed)
-  if (!ocrQueue) {
-    return res.status(503).json({
-      success: false,
-      error: 'Queue service unavailable. Please try again later.'
-    });
-  }
-
-  const job = await ocrQueue.add({
-    uploadJobId: jobId,
-    files: fileData
-  }, { jobId: jobId }); // Use custom ID for Bull
-
-  // Return 202 Accepted
-  res.status(202).json({
-    success: true,
-    message: 'Files accepted and queued for processing',
-    jobId: job.id,
-    files_received: req.files.length
-  });
 }));
 
 export default router;
