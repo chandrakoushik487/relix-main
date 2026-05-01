@@ -31,19 +31,38 @@ api.interceptors.response.use(
 // Task 53: Mock / Actual API bridging
 export const uploadService = {
   uploadFiles: async (files, onUploadProgress) => {
-    const formData = new FormData();
-    files.forEach(file => formData.append('documents', file));
+    const uploadedFiles = [];
+    
+    // Process one file at a time for simplicity, but could be done with Promise.all
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // 1. Get Signed URL from Backend
+      const { url, fileName } = await api.post('/upload/signed-url', {
+        fileName: file.name,
+        contentType: file.type
+      });
 
-    return api.post('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress
-    });
-  },
+      // 2. Upload directly to Google Cloud Storage using PUT
+      await axios.put(url, file, {
+        headers: {
+          'Content-Type': file.type
+        },
+        onUploadProgress: (progEvent) => {
+          // Send progress updates back to component
+          if (onUploadProgress) {
+            // Aggregate progress across files (rough estimation)
+            const currentTotal = (i * 100) + Math.round((progEvent.loaded * 100) / progEvent.total);
+            const overallPercent = Math.round(currentTotal / files.length);
+            onUploadProgress({ loaded: overallPercent, total: 100 });
+          }
+        }
+      });
+      
+      uploadedFiles.push(fileName);
+    }
 
-  pollJobStatus: async (jobId) => {
-    return api.get(`/jobs/${jobId}`);
+    return { success: true, uploadedFiles };
   }
 };
 
