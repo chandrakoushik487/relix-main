@@ -14,22 +14,23 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const initializeFirebase = () => {
     try {
         if (!admin.apps.length) {
-            // Attempt to initialize using application default credentials.
-            // If running locally, you must set the GOOGLE_APPLICATION_CREDENTIALS env var
-            // pointing to your downloaded service account JSON file.
-            if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+            // Initialize using application default credentials.
+            // On Cloud Run, this uses the service's default service account.
+            // Locally, set GOOGLE_APPLICATION_CREDENTIALS or provide projectId.
+            if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.K_SERVICE) {
                 admin.initializeApp({
                     credential: admin.credential.applicationDefault()
                 });
                 logger.info('Firebase Admin initialized with Application Default Credentials.');
             } else if (process.env.FIREBASE_PROJECT_ID) {
-               // Fallback / Mock initialization for development if no credentials are provided yet
                 admin.initializeApp({
                     projectId: process.env.FIREBASE_PROJECT_ID
                 });
-                logger.warn('Firebase Admin initialized with only Project ID. Firestore may not have full access.');
+                logger.warn('Firebase Admin initialized with Project ID.');
             } else {
-                logger.error('Missing Firebase credentials. Please set GOOGLE_APPLICATION_CREDENTIALS in .env.');
+                // Default to standard initialization which works if gcloud is initialized
+                admin.initializeApp();
+                logger.info('Firebase Admin initialized with default settings.');
             }
         }
     } catch (error) {
