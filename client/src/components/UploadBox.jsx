@@ -101,44 +101,18 @@ const UploadBox = ({ onUploadComplete }) => {
 
     try {
       const res = await uploadService.uploadFiles(selectedFiles, (progEvent) => {
-        const percentCompleted = Math.round((progEvent.loaded * 100) / progEvent.total);
-        setProgress(percentCompleted);
+        // We modified the api to pass {loaded: percent, total: 100}
+        setProgress(progEvent.loaded);
       });
 
-      if (res.jobId) {
-        setUiState('processing');
-        pollJob(res.jobId);
+      if (res.success) {
+        setUiState('success');
+        if (onUploadComplete) onUploadComplete(res.uploadedFiles);
       }
     } catch (err) {
       setUiState('error');
       setErrorMsg(err.message || 'Upload failed');
     }
-  };
-
-  const pollJob = async (jobId) => {
-    // Basic polling mock
-    let attempts = 0;
-    const interval = setInterval(async () => {
-      attempts++;
-      try {
-        const statusRes = await uploadService.pollJobStatus(jobId);
-        if (statusRes.state === 'completed') {
-          clearInterval(interval);
-          setUiState('success');
-          if (onUploadComplete) onUploadComplete(statusRes.data);
-        } else if (statusRes.state === 'failed') {
-          clearInterval(interval);
-          setUiState('error');
-          setErrorMsg('Job processing failed');
-        }
-      } catch (err) {
-        if (attempts > 10) {
-          clearInterval(interval);
-          setUiState('error');
-          setErrorMsg('Polling Timeout');
-        }
-      }
-    }, 3000);
   };
 
   const isLocked = ['uploading', 'processing', 'success'].includes(uiState);
