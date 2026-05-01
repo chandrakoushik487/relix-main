@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: relix-api
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # You will need to fill these in on the Render dashboard after deployment:
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: AI_SERVICE_URL
+        sync: false
+
+  - type: web
+    name: relix-ai-service
+    env: python
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false

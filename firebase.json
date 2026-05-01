@@ -9,31 +9,21 @@
     {
       "target": "main",
       "public": "client/out",
+      "cleanUrls": true,
       "ignore": [
         "firebase.json",
         "**/.*",
         "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
       ]
     },
     {
       "target": "mvp",
       "public": "client/out",
+      "cleanUrls": true,
       "ignore": [
         "firebase.json",
         "**/.*",
         "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
       ]
     }
   ],
