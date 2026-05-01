@@ -13,22 +13,127 @@ import {
   Minimize2,
   ChevronRight,
   TrendingUp,
-  Activity
+  Activity,
+  Clock
 } from 'lucide-react';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { db } from '@/lib/firebase';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+const center = {
+  lat: 40.7128,
+  lng: -74.0060
+};
+
+const darkMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#263c3f" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#6b9a76" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#38414e" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#212a37" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#9ca5b3" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#746855" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1f2835" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f3d19c" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#2f3948" }],
+  },
+  {
+    featureType: "transit.station",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#17263c" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#515c6d" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#17263c" }],
+  },
+];
 
 export default function EmergencyMapPage() {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY
+  });
+
+  const [incidents, setIncidents] = useState([]);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeLayer, setActiveLayer] = useState('Heatmap');
-  const mapContainerRef = useRef(null);
 
-  // Mock data representing incidents on a map
-  const mockIncidents = [
-    { id: 1, title: 'Severe Flooding', severity: 'Critical', region: 'Sector 4C', status: 'Active', unit: 'Rescue-1', desc: 'Water levels rising rapidly in low altitude areas. Immediate evacuation advised.', x: 30, y: 40, time: '2m ago' },
-    { id: 2, title: 'Medical Supply Shortage', severity: 'High', region: 'District 9', status: 'Pending', unit: 'Unassigned', desc: 'Field hospital Alpha running low on trauma kits and insulin.', x: 60, y: 30, time: '14m ago' },
-    { id: 3, title: 'Blocked Supply Route', severity: 'Medium', region: 'Zone B', status: 'In Progress', unit: 'Logistics-4', desc: 'Debris blocking main arterial road. Cleanup crew dispatched.', x: 45, y: 70, time: '28m ago' },
-    { id: 4, title: 'Power Grid Failure', severity: 'High', region: 'Old Town', status: 'Active', unit: 'Engineer-2', desc: 'Total blackout reported across 4 blocks. Hospitals on backup.', x: 75, y: 55, time: '1h ago' },
-  ];
+  // Task 10: Firestore real-time listener
+  useEffect(() => {
+    const q = query(collection(db, "issues"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const docs = [];
+      querySnapshot.forEach((doc) => {
+        docs.push({ id: doc.id, ...doc.data() });
+      });
+      setIncidents(docs);
+    });
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="h-[calc(100vh-64px)] w-full flex relative overflow-hidden bg-[#050505]">
@@ -78,36 +183,6 @@ export default function EmergencyMapPage() {
             </div>
           </div>
 
-          {/* Severity Filters */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-zinc-500">
-              <Filter size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Severity Toggles</span>
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: 'Critical', color: 'bg-red-500', count: 2 },
-                { label: 'High Priority', color: 'bg-amber-500', count: 4 },
-                { label: 'Moderate', color: 'bg-indigo-500', count: 8 },
-                { label: 'Observation', color: 'bg-emerald-500', count: 12 },
-              ].map(item => (
-                <label key={item.label} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-all">
-                  <div className="flex items-center gap-3">
-                    <input type="checkbox" className="hidden peer" defaultChecked />
-                    <div className="w-4 h-4 border border-white/10 rounded peer-checked:bg-indigo-600 peer-checked:border-indigo-600 flex items-center justify-center transition-all">
-                      <div className="w-1.5 h-1.5 bg-white rounded-sm opacity-0 peer-checked:opacity-100" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                      <span className="text-xs font-bold text-zinc-300">{item.label}</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-zinc-600">{item.count}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
           {/* Quick List */}
           <div className="space-y-4 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 text-zinc-500">
@@ -115,20 +190,22 @@ export default function EmergencyMapPage() {
               <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Recent Alerts</span>
             </div>
             <div className="space-y-3">
-              {mockIncidents.slice(0, 3).map(incident => (
+              {incidents.slice(0, 10).map(incident => (
                 <div 
                   key={incident.id} 
                   onClick={() => setSelectedIncident(incident)}
                   className="p-3 rounded-xl bg-[#030303] border border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group"
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{incident.id}</span>
-                    <span className="text-[9px] font-bold text-zinc-600">{incident.time}</span>
+                    <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{incident.id.slice(0, 8)}</span>
+                    <span className="text-[9px] font-bold text-zinc-600">
+                      {incident.createdAt?.seconds ? new Date(incident.createdAt.seconds * 1000).toLocaleTimeString() : 'Recent'}
+                    </span>
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.title}</h4>
+                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.issueType || 'Incident'}</h4>
                   <div className="flex items-center gap-2">
                     <MapPin size={10} className="text-zinc-600" />
-                    <span className="text-[10px] font-bold text-zinc-500">{incident.region}</span>
+                    <span className="text-[10px] font-bold text-zinc-500">{incident.location || 'Unknown Region'}</span>
                   </div>
                 </div>
               ))}
@@ -149,79 +226,40 @@ export default function EmergencyMapPage() {
           </button>
         </div>
 
-        <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
-           <div className="flex items-center gap-3 bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 px-4 py-2.5 rounded-2xl shadow-2xl">
-              <Activity className="text-indigo-400" size={16} />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Global SVI Index</span>
-                <span className="text-sm font-bold text-white">0.74 <span className="text-emerald-400 text-[10px] ml-1">↑ 2.4%</span></span>
-              </div>
-           </div>
-        </div>
-
-        {/* Floating Controls */}
-        <div className="absolute bottom-10 right-6 z-10 flex flex-col gap-3">
-          <button className="w-12 h-12 bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-zinc-400 hover:text-white transition-all shadow-2xl">
-            <Crosshair size={20} />
-          </button>
-          <button className="w-12 h-12 bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-zinc-400 hover:text-white transition-all shadow-2xl">
-            <Navigation size={20} />
-          </button>
-        </div>
-
-        {/* Legend */}
-        <div className="absolute bottom-10 left-6 z-10 p-4 bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex items-center gap-6">
-           <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse" />
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Critical</span>
-           </div>
-           <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Warning</span>
-           </div>
-           <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Resource</span>
-           </div>
-        </div>
-
-        {/* Map Canvas Placeholder */}
-        <div className="absolute inset-0 z-0 overflow-hidden" ref={mapContainerRef}>
-          {/* Dark Grid Background */}
-          <div className="absolute inset-0 bg-[#030303]" style={{ 
-            backgroundImage: `radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }} />
-          
-          {/* Faint World Map/Terrain Trace */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-screen overflow-hidden">
-             <div className="w-full h-full transform scale-150 blur-[2px]" style={{ 
-               background: 'radial-gradient(circle at 30% 40%, #1e1b4b 0%, transparent 40%), radial-gradient(circle at 70% 60%, #1e1b4b 0%, transparent 40%)' 
-             }} />
-          </div>
-
-          {/* Interactive Pins */}
-          {mockIncidents.map((incident) => {
-            let colorClass = 'text-red-500 bg-red-500/20 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]';
-            if (incident.severity === 'High') colorClass = 'text-amber-500 bg-amber-500/20 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.3)]';
-            if (incident.severity === 'Medium') colorClass = 'text-indigo-500 bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.3)]';
-
-            return (
-              <button
-                key={incident.id}
-                onClick={() => setSelectedIncident(incident)}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-all duration-300 hover:scale-125 z-10 ${selectedIncident?.id === incident.id ? 'scale-150 z-20' : ''}`}
-                style={{ left: `${incident.x}%`, top: `${incident.y}%` }}
-              >
-                <div className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center transition-all ${colorClass}`}>
-                  <MapPin size={20} />
-                  {incident.severity === 'Critical' && (
-                    <div className="absolute inset-0 rounded-2xl border-2 border-red-500 animate-ping opacity-40" />
-                  )}
-                </div>
-              </button>
-            )
-          })}
+        {/* Real Google Map */}
+        <div className="absolute inset-0 z-0">
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              center={center}
+              zoom={12}
+              options={{
+                styles: darkMapStyle,
+                disableDefaultUI: true,
+                zoomControl: false,
+              }}
+            >
+              {incidents.map((incident) => (
+                <Marker
+                  key={incident.id}
+                  position={{ lat: incident.lat || 40.71, lng: incident.lng || -74.00 }}
+                  onClick={() => setSelectedIncident(incident)}
+                  icon={{
+                    path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+                    fillColor: incident.urgency === 'Critical' ? '#ef4444' : '#f59e0b',
+                    fillOpacity: 1,
+                    strokeWeight: 1,
+                    strokeColor: '#ffffff',
+                    scale: 1.5,
+                  }}
+                />
+              ))}
+            </GoogleMap>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Activity className="text-indigo-500 animate-spin" size={48} />
+            </div>
+          )}
         </div>
 
         {/* 3. Detail Drawer (Slide-in) */}
@@ -240,16 +278,16 @@ export default function EmergencyMapPage() {
                 <div className="space-y-4 relative">
                   <div className="flex items-center gap-3">
                     <span className={`text-[10px] uppercase tracking-[0.2em] font-bold px-2 py-1 rounded-md border ${
-                      selectedIncident.severity === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      selectedIncident.urgency === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     }`}>
-                      {selectedIncident.severity}
+                      {selectedIncident.urgency || 'Medium'}
                     </span>
-                    <span className="text-xs font-bold text-zinc-500 tracking-widest">{selectedIncident.region}</span>
+                    <span className="text-xs font-bold text-zinc-500 tracking-widest">{selectedIncident.location}</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-white font-display leading-tight">{selectedIncident.title}</h3>
+                  <h3 className="text-2xl font-bold text-white font-display leading-tight">{selectedIncident.issueType}</h3>
                   <div className="flex items-center gap-2 text-zinc-500">
                     <Clock size={14} />
-                    <span className="text-xs font-medium">Reported {selectedIncident.time}</span>
+                    <span className="text-xs font-medium">Reported {selectedIncident.createdAt?.seconds ? new Date(selectedIncident.createdAt.seconds * 1000).toLocaleTimeString() : 'Recently'}</span>
                   </div>
                 </div>
               </div>
@@ -257,35 +295,21 @@ export default function EmergencyMapPage() {
               <div className="p-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Context & Intel</h4>
-                  <p className="text-sm text-zinc-300 leading-relaxed font-medium">{selectedIncident.desc}</p>
+                  <p className="text-sm text-zinc-300 leading-relaxed font-medium">{selectedIncident.description}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
+                    <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">People Affected</span>
+                    <span className="text-sm font-bold text-white uppercase">{selectedIncident.peopleAffected || 0}</span>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
                     <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Live Status</span>
                     <div className="flex items-center gap-2">
                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                       <span className="text-sm font-bold text-white uppercase">{selectedIncident.status}</span>
+                       <span className="text-sm font-bold text-white uppercase">{selectedIncident.status || 'Pending'}</span>
                     </div>
                   </div>
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5 group hover:border-white/10 transition-all">
-                    <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Deployed Unit</span>
-                    <span className="text-sm font-bold text-white">{selectedIncident.unit}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                   <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Regional Impact</h4>
-                   <div className="glass-card p-4 space-y-4">
-                      <div className="flex justify-between items-center">
-                         <span className="text-xs text-zinc-400">Projected Casualties</span>
-                         <span className="text-xs font-bold text-white">0 (Evacuated)</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                         <span className="text-xs text-zinc-400">Estimated SVI Change</span>
-                         <span className="text-xs font-bold text-amber-400">+0.12 Critical</span>
-                      </div>
-                   </div>
                 </div>
               </div>
 
@@ -297,8 +321,8 @@ export default function EmergencyMapPage() {
             </>
           )}
         </div>
-
       </div>
     </div>
   );
 }
+
