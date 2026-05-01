@@ -1,0 +1,9 @@
+node_modules
+client/
+*.md
+*.zip
+.git
+.gitignore
+.env*
+Dockerfile
+README.md
