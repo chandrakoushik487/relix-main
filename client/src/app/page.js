@@ -13,6 +13,9 @@ import {
   Globe
 } from 'lucide-react';
 
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
 const FeatureCard = ({ icon: Icon, title, description, delay }) => (
   <div 
     className="glass-card p-8 group animate-fade-in" 
@@ -28,6 +31,15 @@ const FeatureCard = ({ icon: Icon, title, description, delay }) => (
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const { user, role, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      const dashboardPath = role === 'Volunteer' ? '/volunteer/dashboard' : '/dashboard';
+      router.push(dashboardPath);
+    }
+  }, [user, role, loading, router]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
