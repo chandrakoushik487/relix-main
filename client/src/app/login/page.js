@@ -24,6 +24,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { updateProfile } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext';
 
 const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,9 +47,9 @@ const getAuthErrorMessage = (errorCode) => {
   };
   return errorMap[errorCode] || 'Unable to sign in. Please check your credentials.';
 };
-
 export default function LoginPage() {
   const router = useRouter();
+  const { setRole: setGlobalRole } = useAuth();
   const [role, setRole] = useState('NGO Staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,8 +81,14 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [lockoutUntil]);
 
-  const handleRoleRedirect = (selectedRole) => {
+  const handleRoleRedirect = async (selectedRole) => {
+    // Store role in global context and localStorage
+    setGlobalRole(selectedRole);
     localStorage.setItem('userRole', selectedRole);
+    
+    // Small delay to ensure state is synced
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     if (selectedRole === 'Volunteer') {
       router.push('/volunteer/dashboard');
     } else {
@@ -117,7 +124,7 @@ export default function LoginPage() {
       setEmail('');
       setPassword('');
       setFailedAttempts(0);
-      handleRoleRedirect(role);
+      await handleRoleRedirect(role);
     } catch (error) {
       const msg = getAuthErrorMessage(error.code);
 
@@ -145,9 +152,23 @@ export default function LoginPage() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      
       // Set displayName to role so protected layout can read it
       await updateProfile(result.user, { displayName: role });
-      handleRoleRedirect(role);
+      
+      // Ensure user document exists in Firestore for role persistence
+      try {
+        await setDoc(doc(db, 'users', result.user.uid), {
+          email: result.user.email,
+          role: role,
+          updated_at: new Date().toISOString(),
+          auth_provider: 'google'
+        }, { merge: true }); // Use merge: true to avoid overwriting existing data if they've signed in before
+      } catch (fsError) {
+        console.warn("Failed to write Google user to Firestore:", fsError);
+      }
+      
+      await handleRoleRedirect(role);
     } catch (error) {
       setErrorMsg(getAuthErrorMessage(error.code));
     } finally {
@@ -186,7 +207,7 @@ export default function LoginPage() {
       } catch (fsError) {
         console.warn("Failed to write to users collection. Please ensure firestore.rules are deployed:", fsError);
       }
-      handleRoleRedirect(role);
+      await handleRoleRedirect(role);
     } catch (error) {
       setErrorMsg(getAuthErrorMessage(error.code));
     } finally {
