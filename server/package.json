@@ -10,6 +10,7 @@
   "dependencies": {
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/logging-winston": "^6.0.1",
+    "@google-cloud/secret-manager": "^6.1.2",
     "@google-cloud/storage": "^7.19.0",
     "@google-cloud/tasks": "^6.2.1",
     "cors": "^2.8.5",
@@ -28,6 +29,6 @@
     "twilio": "^5.0.4",
     "winston": "^3.13.0",
     "xss": "^1.0.15",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   }
 }
