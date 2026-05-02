@@ -8,15 +8,16 @@ import logger from '../utils/logger.js';
 // Fix #20: Use absolute path so this config works regardless of cwd
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const serverEnvPath = path.resolve(__dirname, '../.env');
-const rootEnvPath = path.resolve(__dirname, '../../.env');
+const serverRoot = path.resolve(__dirname, '..');
+const serverEnvPath = path.resolve(serverRoot, '.env');
+const rootEnvPath = path.resolve(serverRoot, '..', '.env');
 dotenv.config({ path: fs.existsSync(serverEnvPath) ? serverEnvPath : rootEnvPath });
 
 const resolveAbsolutePath = (relativePath) => {
     if (!relativePath) return null;
     const absolutePath = path.isAbsolute(relativePath)
         ? relativePath
-        : path.resolve(__dirname, relativePath);
+        : path.resolve(serverRoot, relativePath);
     return fs.existsSync(absolutePath) ? absolutePath : null;
 };
 
