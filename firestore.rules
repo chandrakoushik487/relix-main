@@ -10,7 +10,7 @@ service cloud.firestore {
 
       // Authenticated users can create new issues
       allow create: if request.auth != null
-        && request.resource.data.keys().hasAll(['description', 'problem_type', 'location', 'urgency_level', 'status']);
+        && request.resource.data.keys().hasAll(['issue_description', 'problem_type', 'area', 'urgency_level', 'status']);
 
       // Only admins or the system (server-side with admin SDK bypasses rules) can update/delete
       allow update, delete: if request.auth != null
