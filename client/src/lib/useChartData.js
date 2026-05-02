@@ -66,7 +66,7 @@ export function useChartData() {
           total_affected: analyticsResponse.data.total_affected,
           assigned_operations: analyticsResponse.data.assigned_operations,
           pending_operations: analyticsResponse.data.pending_operations,
-          active_volunteers: 312, // Keep fallback for now
+          active_volunteers: analyticsResponse.data.active_volunteers || 0,
         };
 
         setMetrics(apiMetrics);
