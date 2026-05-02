@@ -1,28 +1,19 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import TopNav from '@/components/layout/TopNav';
 import Sidebar from '@/components/layout/Sidebar';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProtectedLayout({ children }) {
   const router = useRouter();
-  const [userRole, setUserRole] = useState('NGO Staff');
-  const [loading, setLoading] = useState(true);
+  const { user, role, loading } = useAuth();
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        router.push('/login');
-      } else {
-        const role = user.displayName || 'Volunteer';
-        setUserRole(role);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [router]);
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -37,9 +28,9 @@ export default function ProtectedLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-[#030303] overflow-hidden">
-      <Sidebar userRole={userRole} />
+      <Sidebar userRole={role} />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopNav userRole={userRole} isLive={true} />
+        <TopNav userRole={role} isLive={true} />
         <main className="flex-1 overflow-y-auto w-full relative animate-fade-in">
           <div className="p-10">
             {children}
