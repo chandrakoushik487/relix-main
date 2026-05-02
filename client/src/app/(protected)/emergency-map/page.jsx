@@ -202,10 +202,10 @@ export default function EmergencyMapPage() {
                       {incident.createdAt?.seconds ? new Date(incident.createdAt.seconds * 1000).toLocaleTimeString() : 'Recent'}
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.issueType || 'Incident'}</h4>
+                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.problem_type || 'Incident'}</h4>
                   <div className="flex items-center gap-2">
                     <MapPin size={10} className="text-zinc-600" />
-                    <span className="text-[10px] font-bold text-zinc-500">{incident.location || 'Unknown Region'}</span>
+                    <span className="text-[10px] font-bold text-zinc-500">{incident.area || 'Unknown Region'}</span>
                   </div>
                 </div>
               ))}
@@ -242,11 +242,11 @@ export default function EmergencyMapPage() {
               {incidents.map((incident) => (
                 <Marker
                   key={incident.id}
-                  position={{ lat: incident.lat || 40.71, lng: incident.lng || -74.00 }}
+                  position={{ lat: incident.latitude || 40.71, lng: incident.longitude || -74.00 }}
                   onClick={() => setSelectedIncident(incident)}
                   icon={{
                     path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-                    fillColor: incident.urgency === 'Critical' ? '#ef4444' : '#f59e0b',
+                    fillColor: incident.urgency_level === 'Critical' || incident.urgency_level === 'High' ? '#ef4444' : '#f59e0b',
                     fillOpacity: 1,
                     strokeWeight: 1,
                     strokeColor: '#ffffff',
@@ -278,13 +278,13 @@ export default function EmergencyMapPage() {
                 <div className="space-y-4 relative">
                   <div className="flex items-center gap-3">
                     <span className={`text-[10px] uppercase tracking-[0.2em] font-bold px-2 py-1 rounded-md border ${
-                      selectedIncident.urgency === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      selectedIncident.urgency_level === 'Critical' || selectedIncident.urgency_level === 'High' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     }`}>
-                      {selectedIncident.urgency || 'Medium'}
+                      {selectedIncident.urgency_level || 'Medium'}
                     </span>
-                    <span className="text-xs font-bold text-zinc-500 tracking-widest">{selectedIncident.location}</span>
+                    <span className="text-xs font-bold text-zinc-500 tracking-widest">{selectedIncident.area}</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-white font-display leading-tight">{selectedIncident.issueType}</h3>
+                  <h3 className="text-2xl font-bold text-white font-display leading-tight">{selectedIncident.problem_type}</h3>
                   <div className="flex items-center gap-2 text-zinc-500">
                     <Clock size={14} />
                     <span className="text-xs font-medium">Reported {selectedIncident.createdAt?.seconds ? new Date(selectedIncident.createdAt.seconds * 1000).toLocaleTimeString() : 'Recently'}</span>
@@ -295,7 +295,7 @@ export default function EmergencyMapPage() {
               <div className="p-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Context & Intel</h4>
-                  <p className="text-sm text-zinc-300 leading-relaxed font-medium">{selectedIncident.description}</p>
+                  <p className="text-sm text-zinc-300 leading-relaxed font-medium">{selectedIncident.issue_description}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
