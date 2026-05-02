@@ -73,3 +73,8 @@ scratch/
 .agents/
 relix_ui_v2/
 skills-lock.json
+
+# =====================
+# Secrets / Credentials
+# =====================
+server/config/firebase-adminsdk.json
