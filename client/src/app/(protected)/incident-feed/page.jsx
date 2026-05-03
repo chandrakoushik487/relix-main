@@ -11,6 +11,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
+import IssueEditor from '@/components/IssueEditor';
+import { incidentService } from '@/services/incidentService';
 
 const IssueStatus = ({ status }) => {
   const styles = {
@@ -32,6 +34,9 @@ const IssueStatus = ({ status }) => {
 export default function IncidentFeedPage() {
   const { incidents, loading, error, isLive, refetch } = useIncidents();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   
   const mockIssues = [
     { id: 'ISS-4821', title: 'Severe Water Contamination', type: 'Health', region: 'District 9', status: 'Critical', time: '2m ago' },
@@ -54,11 +59,11 @@ export default function IncidentFeedPage() {
     
     const query = searchQuery.toLowerCase();
     return baseIssues.filter(issue => 
-      issue.id.toLowerCase().includes(query) ||
-      issue.title.toLowerCase().includes(query) ||
-      issue.region.toLowerCase().includes(query) ||
-      issue.type.toLowerCase().includes(query) ||
-      issue.status.toLowerCase().includes(query)
+      (issue.id || '').toLowerCase().includes(query) ||
+      (issue.title || '').toLowerCase().includes(query) ||
+      (issue.region || '').toLowerCase().includes(query) ||
+      (issue.type || '').toLowerCase().includes(query) ||
+      (issue.status || '').toLowerCase().includes(query)
     );
   }, [baseIssues, searchQuery]);
 
@@ -67,8 +72,61 @@ export default function IncidentFeedPage() {
     refetch();
   };
 
+  const handleCreateIncident = async (formData) => {
+    try {
+      await incidentService.createIncident({
+        title: formData.title,
+        problem_type: formData.problem_type,
+        urgency_level: formData.urgency_level,
+        area: formData.area,
+        issue_description: formData.issue_description,
+        peopleAffected: formData.peopleAffected,
+        latitude: formData.latitude,
+        longitude: formData.longitude
+      });
+      
+      setSuccessMsg('Incident reported successfully!');
+      setIsEditorOpen(false);
+      refetch();
+      setTimeout(() => setSuccessMsg(''), 5000);
+    } catch (err) {
+      console.error("Failed to create incident:", err);
+    }
+  };
+  const handleRowClick = (issueId) => {
+    // TODO: Navigate to incident detail page or open modal
+    alert(`View details for incident ${issueId}`);
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => prev + 1);
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
   return (
     <div className="max-w-7xl mx-auto p-8 space-y-8 animate-in fade-in duration-500">
+      {/* Success Notification */}
+      {successMsg && (
+        <div className="fixed top-8 right-8 z-50 animate-in slide-in-from-right-8 duration-500">
+          <div className="bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            <CheckCircle2 size={20} />
+            <span className="text-sm font-bold">{successMsg}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Editor Modal Overlay */}
+      {isEditorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <IssueEditor 
+            onSubmit={handleCreateIncident} 
+            onCancel={() => setIsEditorOpen(false)} 
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
@@ -85,7 +143,10 @@ export default function IncidentFeedPage() {
             <FilterX size={16} />
             Reset Filters
           </button>
-          <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(99,102,241,0.2)] flex items-center gap-2">
+          <button 
+            onClick={() => setIsEditorOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(99,102,241,0.2)] flex items-center gap-2"
+          >
             <Plus size={18} />
             Create Incident
           </button>
@@ -155,7 +216,7 @@ export default function IncidentFeedPage() {
               )}
 
               {filteredIssues.map((issue) => (
-                <tr key={issue.id} className="hover:bg-white/[0.01] transition-all group cursor-pointer">
+                <tr key={issue.id} className="hover:bg-white/[0.01] transition-all group cursor-pointer" onClick={() => handleRowClick(issue.id)}>
                   <td className="px-8 py-6 whitespace-nowrap">
                     <span className="text-xs font-bold text-indigo-400 font-mono tracking-widest px-2 py-1 rounded bg-indigo-500/5 border border-indigo-500/10">{issue.id}</span>
                   </td>
@@ -205,8 +266,8 @@ export default function IncidentFeedPage() {
              </p>
           </div>
           <div className="flex gap-2">
-            <button className="px-4 py-2 rounded-xl border border-white/5 text-[11px] font-bold text-zinc-500 uppercase tracking-widest hover:bg-white/5 transition-all disabled:opacity-30" disabled>Previous</button>
-            <button className="px-4 py-2 rounded-xl border border-white/5 text-[11px] font-bold text-white uppercase tracking-widest bg-white/5 hover:bg-white/10 transition-all">Next Page</button>
+            <button className="px-4 py-2 rounded-xl border border-white/5 text-[11px] font-bold text-zinc-500 uppercase tracking-widest hover:bg-white/5 transition-all disabled:opacity-30" disabled={currentPage === 1} onClick={handlePrevPage}>Previous</button>
+            <button className="px-4 py-2 rounded-xl border border-white/5 text-[11px] font-bold text-white uppercase tracking-widest bg-white/5 hover:bg-white/10 transition-all" onClick={handleNextPage}>Next Page</button>
           </div>
         </div>
       </div>
