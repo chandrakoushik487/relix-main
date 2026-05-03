@@ -9,7 +9,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   CheckCircle2,
@@ -159,9 +159,12 @@ export default function LoginPage() {
       // Ensure user document exists in Firestore for role persistence
       try {
         await setDoc(doc(db, 'users', result.user.uid), {
-          email: result.user.email,
+          email: result.user.email || '',
+          username: result.user.displayName || result.user.email?.split('@')[0] || '',
+          phone: '',
+          bio: '',
           role: role,
-          updated_at: new Date().toISOString(),
+          createdAt: serverTimestamp(),
           auth_provider: 'google'
         }, { merge: true }); // Use merge: true to avoid overwriting existing data if they've signed in before
       } catch (fsError) {
@@ -201,9 +204,12 @@ export default function LoginPage() {
       try {
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           email: email,
+          username: userCredential.user.displayName || email.split('@')[0] || '',
+          phone: '',
+          bio: '',
           role: role,
-          created_at: new Date().toISOString()
-        });
+          createdAt: serverTimestamp()
+        }, { merge: true });
       } catch (fsError) {
         console.warn("Failed to write to users collection. Please ensure firestore.rules are deployed:", fsError);
       }
