@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { updateProfile } from 'firebase/auth';
 import { useAuth } from '@/context/AuthContext';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +47,14 @@ const getAuthErrorMessage = (errorCode) => {
     'auth/network-request-failed': 'Network error. Please check your connection.',
   };
   return errorMap[errorCode] || 'Unable to sign in. Please check your credentials.';
+};
+
+const getFirestoreProfileWriteErrorMessage = (error) => {
+  const normalized = normalizeFirebaseError(error, 'Profile sync failed');
+  if (normalized.code === 'permission-denied') {
+    return 'Authentication succeeded, but Firestore blocked profile write. Check users collection rules.';
+  }
+  return `Authentication succeeded, but profile sync failed: ${normalized.details}`;
 };
 export default function LoginPage() {
   const router = useRouter();
@@ -168,12 +177,16 @@ export default function LoginPage() {
           auth_provider: 'google'
         }, { merge: true }); // Use merge: true to avoid overwriting existing data if they've signed in before
       } catch (fsError) {
-        console.warn("Failed to write Google user to Firestore:", fsError);
+        throw fsError;
       }
       
       await handleRoleRedirect(role);
     } catch (error) {
-      setErrorMsg(getAuthErrorMessage(error.code));
+      if (error?.code?.startsWith('auth/')) {
+        setErrorMsg(getAuthErrorMessage(error.code));
+      } else {
+        setErrorMsg(getFirestoreProfileWriteErrorMessage(error));
+      }
     } finally {
       setLoading(null);
     }
@@ -211,11 +224,15 @@ export default function LoginPage() {
           createdAt: serverTimestamp()
         }, { merge: true });
       } catch (fsError) {
-        console.warn("Failed to write to users collection. Please ensure firestore.rules are deployed:", fsError);
+        throw fsError;
       }
       await handleRoleRedirect(role);
     } catch (error) {
-      setErrorMsg(getAuthErrorMessage(error.code));
+      if (error?.code?.startsWith('auth/')) {
+        setErrorMsg(getAuthErrorMessage(error.code));
+      } else {
+        setErrorMsg(getFirestoreProfileWriteErrorMessage(error));
+      }
     } finally {
       setLoading(null);
     }
