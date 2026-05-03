@@ -2,6 +2,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { incidentService } from '@/services/incidentService';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 /**
  * Hook to manage incident list state and fetching
@@ -20,8 +21,9 @@ export function useIncidents() {
       setIncidents(data);
       setIsLive(true);
     } catch (err) {
-      console.error('Error in fetchIncidents:', err);
-      setError(err?.message || 'Failed to fetch incidents');
+      const normalized = normalizeFirebaseError(err, 'Failed to fetch incidents');
+      console.error('Error in fetchIncidents:', normalized.details, err);
+      setError(normalized.details);
       setIncidents([]);
       setIsLive(false);
     } finally {
