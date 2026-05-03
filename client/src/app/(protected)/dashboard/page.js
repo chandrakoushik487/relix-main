@@ -80,7 +80,7 @@ const IncidentItem = ({ type, title, location, time, severity }) => (
 );
 
 export default function Dashboard() {
-  const { chartData, metrics, loading, isLive, refetch } = useChartData();
+  const { chartData, metrics, loading, isLive, error, refetch } = useChartData();
   const { incidents } = useIncidents();
   const [activeTab, setActiveTab] = useState('overview');
   const [isAssignModalOpen, setAssignModalOpen] = useState(false);
@@ -155,6 +155,12 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+          Dashboard data sync warning: {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-8 border-b border-white/5">
