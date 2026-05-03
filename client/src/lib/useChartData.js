@@ -7,6 +7,7 @@ import {
   getStatusDistribution,
   getSviByRegion,
 } from '@/components/charts/mockChartData';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 /**
  * Attempts to dynamically import firebase to avoid build-time import failures.
@@ -34,6 +35,7 @@ export function useChartData() {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
+  const [error, setError] = useState(null);
 
   const fallbackData = useMemo(() => ({
     issuesByType: getIssuesByType(),
@@ -52,6 +54,7 @@ export function useChartData() {
   }), []);
 
   const fetchData = useCallback(async () => {
+    setError(null);
     try {
       // Try to fetch analytics from the API
       const analyticsResponse = await analyticsService.getDashboardAnalytics();
@@ -146,23 +149,32 @@ export function useChartData() {
 
               setData({ issuesByType, issuesOverTime, statusDistribution, sviByRegion });
             } else {
+              setError('No incidents found in Firestore for chart generation.');
               setData(fallbackData);
             }
           } else {
+            setError('Firestore module unavailable in dashboard chart pipeline.');
+            setIsLive(false);
             setData(fallbackData);
           }
         } catch (firestoreErr) {
-          console.warn('Firestore fetch failed, using fallback chart data:', firestoreErr);
+          const normalized = normalizeFirebaseError(firestoreErr, 'Firestore chart sync failed');
+          console.warn('Firestore fetch failed, using fallback chart data:', normalized.details, firestoreErr);
+          setError(normalized.details);
+          setIsLive(false);
           setData(fallbackData);
         }
       } else {
         // API call failed, use fallback
+        setError('Analytics API returned an invalid response payload.');
         setData(fallbackData);
         setMetrics(fallbackMetrics);
         setIsLive(false);
       }
     } catch (err) {
-      console.warn('Analytics API failed, using mock data:', err.message);
+      const normalized = normalizeFirebaseError(err, 'Analytics API failed');
+      console.warn('Analytics API failed, using mock data:', normalized.details, err);
+      setError(normalized.details);
       setData(fallbackData);
       setMetrics(fallbackMetrics);
       setIsLive(false);
@@ -184,6 +196,7 @@ export function useChartData() {
     metrics: metrics || fallbackMetrics,
     loading,
     isLive,
+    error,
     refetch: fetchData,
   };
 }
