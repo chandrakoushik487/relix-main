@@ -20,14 +20,15 @@ export const incidentService = {
   getIncidents: async (options = {}) => {
     try {
       const issuesRef = collection(db, 'issues');
-      let q = query(issuesRef, orderBy('upload_date', 'desc'));
+      // Simple query without orderBy to avoid composite index errors
+      let q = query(issuesRef);
       
       if (options.limit) {
-        q = query(q, limit(options.limit));
+        q = query(issuesRef, limit(options.limit));
       }
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => {
+      const incidents = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -37,11 +38,45 @@ export const incidentService = {
           status: data.status || 'Pending',
           time: data.upload_date ? formatTimeAgo(data.upload_date) : 'Recently',
           severity: data.urgency_level || 'Medium',
+          upload_date: data.upload_date || new Date().toISOString(),
           raw: data
         };
       });
+
+      // Sort on client side by date descending
+      incidents.sort((a, b) => {
+        const aDate = new Date(a.upload_date).getTime();
+        const bDate = new Date(b.upload_date).getTime();
+        return bDate - aDate;
+      });
+
+      return incidents;
     } catch (error) {
       console.error('Error fetching incidents:', error);
+      // Return empty array on error instead of throwing
+      return [];
+    }
+  },
+
+  /**
+   * Creates a new incident report in Firestore
+   */
+  createIncident: async (incidentData) => {
+    try {
+      const { db } = await import('@/lib/firebase');
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      
+      const docRef = await addDoc(collection(db, 'issues'), {
+        ...incidentData,
+        status: 'Pending',
+        upload_date: new Date().toISOString(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      return { id: docRef.id, ...incidentData };
+    } catch (error) {
+      console.error('Error creating incident:', error);
       throw error;
     }
   }
