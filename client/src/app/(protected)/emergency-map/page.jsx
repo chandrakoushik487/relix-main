@@ -121,25 +121,60 @@ export default function EmergencyMapPage() {
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeLayer, setActiveLayer] = useState('Heatmap');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Task 10: Firestore real-time listener
   useEffect(() => {
-    const q = query(collection(db, "issues"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const docs = [];
-      querySnapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() });
+    try {
+      // Simple query without orderBy to avoid composite index errors
+      const q = query(collection(db, "issues"));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const docs = [];
+        querySnapshot.forEach((doc) => {
+          docs.push({ id: doc.id, ...doc.data() });
+        });
+        // Sort on client side
+        docs.sort((a, b) => {
+          const aTime = a.upload_date ? new Date(a.upload_date).getTime() : 0;
+          const bTime = b.upload_date ? new Date(b.upload_date).getTime() : 0;
+          return bTime - aTime;
+        });
+        setIncidents(docs);
+      }, (error) => {
+        console.error("Error fetching incidents:", error);
+        setIncidents([]);
       });
-      setIncidents(docs);
-    });
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (err) {
+      console.error("Error setting up listener:", err);
+      setIncidents([]);
+    }
   }, []);
+
+  const filteredIncidents = incidents.filter(incident => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      incident.id?.toLowerCase().includes(q) ||
+      incident.area?.toLowerCase().includes(q) ||
+      incident.problem_type?.toLowerCase().includes(q)
+    );
+  });
+
+  const getMapTypeId = () => {
+    switch (activeLayer) {
+      case 'Satellite': return 'satellite';
+      case 'Terrain': return 'terrain';
+      case 'Traffic': return 'roadmap';
+      default: return 'roadmap';
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-64px)] w-full flex relative overflow-hidden bg-[#050505]">
       
       {/* 1. Left Control Panel */}
-      <div className={`h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col z-20 transition-all duration-500 shadow-2xl ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-[320px] opacity-100'}`}>
+      <div className={`h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col z-20 transition-all duration-500 shadow-2xl ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[320px] opacity-100'}`}>
         <div className="p-6 border-b border-white/5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white font-display tracking-tight">Active Map</h2>
@@ -154,7 +189,9 @@ export default function EmergencyMapPage() {
             <input 
               type="text" 
               placeholder="Search coordinates or IDs..." 
-              className="w-full bg-[#030303] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#030303] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-zinc-700"
             />
           </div>
         </div>
@@ -190,11 +227,11 @@ export default function EmergencyMapPage() {
               <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Recent Alerts</span>
             </div>
             <div className="space-y-3">
-              {incidents.slice(0, 10).map(incident => (
+              {filteredIncidents.slice(0, 10).map(incident => (
                 <div 
                   key={incident.id} 
                   onClick={() => setSelectedIncident(incident)}
-                  className="p-3 rounded-xl bg-[#030303] border border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group"
+                  className={`p-3 rounded-xl bg-[#030303] border transition-all cursor-pointer group ${selectedIncident?.id === incident.id ? 'border-indigo-500/50 bg-indigo-500/5' : 'border-white/5 hover:border-indigo-500/30'}`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{incident.id.slice(0, 8)}</span>
@@ -205,10 +242,13 @@ export default function EmergencyMapPage() {
                   <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.problem_type || 'Incident'}</h4>
                   <div className="flex items-center gap-2">
                     <MapPin size={10} className="text-zinc-600" />
-                    <span className="text-[10px] font-bold text-zinc-500">{incident.area || 'Unknown Region'}</span>
+                    <span className="text-[10px] font-bold text-zinc-500 truncate">{incident.area || 'Unknown Region'}</span>
                   </div>
                 </div>
               ))}
+              {filteredIncidents.length === 0 && (
+                <p className="text-[10px] text-center text-zinc-600 py-4 uppercase tracking-widest font-bold">No matches found</p>
+              )}
             </div>
           </div>
         </div>
@@ -233,6 +273,7 @@ export default function EmergencyMapPage() {
               mapContainerStyle={mapContainerStyle}
               center={center}
               zoom={12}
+              mapTypeId={getMapTypeId()}
               options={{
                 styles: darkMapStyle,
                 disableDefaultUI: true,
