@@ -140,12 +140,6 @@ export default function Sidebar({ userRole = 'NGO Staff' }) {
 
         <div className="pt-6 border-t border-[#1A1A1A] mt-auto space-y-1">
           <SidebarItem
-            icon={User}
-            label="Profile"
-            href="/profile"
-            active={pathname === '/profile'}
-          />
-          <SidebarItem
             icon={Settings}
             label="Settings"
             href="/settings"
