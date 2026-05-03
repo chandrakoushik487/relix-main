@@ -42,6 +42,11 @@ export default function SettingsPage() {
 
   const [status, setStatus] = useState({ saving: false, message: '', error: '' });
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    criticalAlerts: true,
+    taskUpdates: true,
+    dailyDigest: false
+  });
 
   useEffect(() => {
     if (profile) {
@@ -130,7 +135,12 @@ export default function SettingsPage() {
       console.error('Sign out error:', err);
     }
   };
-
+  const handleToggleNotification = (pref) => {
+    setNotificationPrefs(prev => ({
+      ...prev,
+      [pref]: !prev[pref]
+    }));
+  };
   if (loading && !profile) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -386,8 +396,8 @@ export default function SettingsPage() {
           <div className="glass-card p-8 space-y-8">
             <div className="space-y-6">
               {[
-                { label: 'Critical Incident Alerts', desc: 'Real-time push notifications for life-threatening situations.' },
-                { label: 'Daily Operations Digest', desc: 'Summary of team performance and incident resolutions.' }
+                { key: 'criticalAlerts', label: 'Critical Incident Alerts', desc: 'Real-time push notifications for life-threatening situations.' },
+                { key: 'dailyDigest', label: 'Daily Operations Digest', desc: 'Summary of team performance and incident resolutions.' }
               ].map((pref, i) => (
                 <div key={i} className="flex items-center justify-between pb-6 border-b border-white/5 last:border-0 last:pb-0">
                   <div className="space-y-1">
@@ -395,8 +405,18 @@ export default function SettingsPage() {
                     <p className="text-xs text-zinc-500">{pref.desc}</p>
                   </div>
                   <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 p-1 rounded-xl">
-                     <button className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest">ON</button>
-                     <button className="px-4 py-2 rounded-lg text-zinc-600 text-[10px] font-bold uppercase tracking-widest">OFF</button>
+                     <button 
+                       className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${notificationPrefs[pref.key] ? 'bg-indigo-600 text-white' : 'text-zinc-600 hover:text-white'}`}
+                       onClick={() => handleToggleNotification(pref.key)}
+                     >
+                       ON
+                     </button>
+                     <button 
+                       className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${!notificationPrefs[pref.key] ? 'bg-zinc-600 text-white' : 'text-zinc-600 hover:text-white'}`}
+                       onClick={() => handleToggleNotification(pref.key)}
+                     >
+                       OFF
+                     </button>
                   </div>
                 </div>
               ))}
