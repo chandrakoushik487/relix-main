@@ -4,6 +4,7 @@ import { taskService } from '@/services/taskService';
 import { db } from '@/lib/firebase';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/context/AuthContext';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 /**
  * Hook to manage tasks/missions with real-time support
@@ -52,20 +53,23 @@ export function useTasks() {
           setLoading(false);
           setError(null);
         } catch (innerErr) {
-          console.error('Error processing snapshot:', innerErr);
-          setError(innerErr.message);
+          const normalized = normalizeFirebaseError(innerErr, 'Unable to process task snapshot');
+          console.error('Error processing snapshot:', normalized.details, innerErr);
+          setError(normalized.details);
           setLoading(false);
         }
       }, (err) => {
-        console.error('Firestore listener error:', err);
-        setError(err.message);
+        const normalized = normalizeFirebaseError(err, 'Task listener failed');
+        console.error('Firestore listener error:', normalized.details, err);
+        setError(normalized.details);
         setLoading(false);
         // Fallback to empty array on error
         setTasks([]);
       });
     } catch (err) {
-      console.error('Error setting up listener:', err);
-      setError(err.message);
+      const normalized = normalizeFirebaseError(err, 'Unable to initialize task listener');
+      console.error('Error setting up listener:', normalized.details, err);
+      setError(normalized.details);
       setLoading(false);
     }
 
