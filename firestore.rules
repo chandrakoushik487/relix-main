@@ -23,10 +23,9 @@ service cloud.firestore {
       allow write: if false; // Admin SDK only
     }
 
-    // Users collection: users can read/write their own profile
+    // Users collection: users can only access their own profile
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Deny everything else by default
