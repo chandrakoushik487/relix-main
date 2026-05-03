@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useTasks } from '@/hooks/useTasks';
 import { taskService } from '@/services/taskService';
+import { useAuth } from '@/context/AuthContext';
 
 const StatCard = ({ icon: Icon, label, value, subtext, color = 'indigo' }) => (
   <div className="glass-card p-6 border-white/5">
@@ -99,15 +100,25 @@ const TaskCard = ({ task, onAccept, onDecline, onComplete }) => (
 );
 
 export default function VolunteerDashboard() {
-  const { tasks, loading, error, updateTask } = useTasks();
+  const { tasks, loading } = useTasks();
   const [isAvailable, setIsAvailable] = useState(true);
+  const { user } = useAuth();
 
   const activeTasks = tasks.filter(t => t.status === 'In Progress' || t.status === 'Pending');
   const pendingInvitations = tasks.filter(t => t.status === 'Assigned'); // Assuming 'Assigned' means pending volunteer action
 
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
-      await taskService.updateTask(taskId, { status: newStatus });
+      const updates = {
+        status: newStatus,
+      };
+
+      // Align volunteer updates with Firestore rules that check assignedTo == request.auth.uid.
+      if (user?.uid) {
+        updates.assignedTo = user.uid;
+      }
+
+      await taskService.updateTask(taskId, updates);
     } catch (err) {
       console.error("Failed to update task:", err);
     }
