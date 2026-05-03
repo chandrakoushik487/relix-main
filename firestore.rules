@@ -17,6 +17,26 @@ service cloud.firestore {
         && request.auth.token.admin == true;
     }
 
+    // Tasks collection: authenticated users can read and create; updates allowed for assigned users
+    match /tasks/{taskId} {
+      // Any authenticated user can read tasks
+      allow read: if request.auth != null;
+
+      // Authenticated users can create new tasks
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['title', 'status', 'priority']);
+
+      // Users can update tasks if they are assigned or are admins
+      allow update: if request.auth != null
+        && (request.auth.token.admin == true
+            || resource.data.assignedTo == request.auth.uid
+            || request.resource.data.assignedTo == request.auth.uid);
+
+      // Only admins can delete tasks
+      allow delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // Jobs collection: authenticated read, no client-side writes (server handles via Admin SDK)
     match /jobs/{jobId} {
       allow read: if request.auth != null;
