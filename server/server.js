@@ -32,6 +32,7 @@ app.get('/health', (req, res) => {
 import uploadRoutes from './routes/uploadRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import issueRoutes from './routes/issueRoutes.js';
+import taskRoutes from './routes/taskRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import bulkUploadRoutes from './routes/bulkUploadRoutes.js';
 import ocrCallbackRoutes from './routes/ocrCallback.js';
@@ -39,6 +40,7 @@ import ocrCallbackRoutes from './routes/ocrCallback.js';
 app.use('/api/upload', uploadRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/issues', issueRoutes);
+app.use('/api/tasks', taskRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/bulk-upload', bulkUploadRoutes);
 app.use('/api', ocrCallbackRoutes);
