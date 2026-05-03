@@ -1,4 +1,5 @@
 import { db } from '@/lib/firebase';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 import { 
   collection, 
   query, 
@@ -7,8 +8,7 @@ import {
   addDoc, 
   updateDoc, 
   doc, 
-  serverTimestamp,
-  where
+  serverTimestamp
 } from 'firebase/firestore';
 
 /**
@@ -30,8 +30,9 @@ export const taskService = {
         createdAt: doc.data().createdAt?.toDate?.() || new Date(doc.data().createdAt)
       }));
     } catch (error) {
-      console.error('Error fetching tasks:', error);
-      throw error;
+      const normalized = normalizeFirebaseError(error, 'Unable to fetch tasks');
+      console.error('Error fetching tasks:', normalized.details, error);
+      throw new Error(normalized.details);
     }
   },
 
@@ -43,6 +44,7 @@ export const taskService = {
       const tasksRef = collection(db, 'tasks');
       const docRef = await addDoc(tasksRef, {
         ...taskData,
+        priority: taskData.priority || 'Medium',
         status: taskData.status || 'Pending',
         progress: 0,
         createdAt: serverTimestamp(),
@@ -50,8 +52,9 @@ export const taskService = {
       });
       return { id: docRef.id, ...taskData };
     } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
+      const normalized = normalizeFirebaseError(error, 'Unable to create task');
+      console.error('Error creating task:', normalized.details, error);
+      throw new Error(normalized.details);
     }
   },
 
@@ -66,8 +69,9 @@ export const taskService = {
         updatedAt: serverTimestamp()
       });
     } catch (error) {
-      console.error('Error updating task:', error);
-      throw error;
+      const normalized = normalizeFirebaseError(error, 'Unable to update task');
+      console.error('Error updating task:', normalized.details, error);
+      throw new Error(normalized.details);
     }
   }
 };
