@@ -20,7 +20,9 @@ export function useIncidents() {
       setIncidents(data);
       setIsLive(true);
     } catch (err) {
-      setError(err.message);
+      console.error('Error in fetchIncidents:', err);
+      setError(err?.message || 'Failed to fetch incidents');
+      setIncidents([]);
       setIsLive(false);
     } finally {
       setLoading(false);
