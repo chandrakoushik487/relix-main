@@ -50,8 +50,11 @@ export default function IncidentFeedPage() {
 
   // Use real data if available, otherwise mock data
   const baseIssues = useMemo(() => {
+    if (error) {
+      return [];
+    }
     return incidents.length > 0 ? incidents : mockIssues;
-  }, [incidents]);
+  }, [incidents, error]);
 
   // Filter issues based on search query
   const filteredIssues = useMemo(() => {
@@ -152,6 +155,12 @@ export default function IncidentFeedPage() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+          Firestore sync failed: {error}
+        </div>
+      )}
 
       {/* Filters Bar */}
       <div className="flex flex-col lg:flex-row items-center gap-4 bg-[#0A0A0A] border border-[#1A1A1A] p-2.5 rounded-2xl shadow-2xl">

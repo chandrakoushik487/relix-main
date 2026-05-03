@@ -53,8 +53,7 @@ export const incidentService = {
       return incidents;
     } catch (error) {
       console.error('Error fetching incidents:', error);
-      // Return empty array on error instead of throwing
-      return [];
+      throw error;
     }
   },
 

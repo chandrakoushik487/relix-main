@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { taskService } from '@/services/taskService';
 import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Hook to manage tasks/missions with real-time support
@@ -11,11 +12,24 @@ export function useTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user, loading: authLoading } = useAuth();
 
   // Initial fetch and Real-time listener
   useEffect(() => {
     let unsubscribe = null;
-    
+
+    if (authLoading) {
+      setLoading(true);
+      return () => {};
+    }
+
+    if (!user) {
+      setTasks([]);
+      setError('User not authenticated');
+      setLoading(false);
+      return () => {};
+    }
+
     try {
       setLoading(true);
       
@@ -60,7 +74,7 @@ export function useTasks() {
         unsubscribe();
       }
     };
-  }, []);
+  }, [authLoading, user]);
 
   return {
     tasks,
