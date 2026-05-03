@@ -19,6 +19,8 @@ import {
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { db } from '@/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 const mapContainerStyle = {
   width: '100%',
@@ -122,9 +124,21 @@ export default function EmergencyMapPage() {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeLayer, setActiveLayer] = useState('Heatmap');
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
+  const { user, loading: authLoading } = useAuth();
 
   // Task 10: Firestore real-time listener
   useEffect(() => {
+    if (authLoading) {
+      return () => {};
+    }
+
+    if (!user) {
+      setIncidents([]);
+      setError('User not authenticated');
+      return () => {};
+    }
+
     try {
       // Simple query without orderBy to avoid composite index errors
       const q = query(collection(db, "issues"));
@@ -140,16 +154,21 @@ export default function EmergencyMapPage() {
           return bTime - aTime;
         });
         setIncidents(docs);
+        setError(null);
       }, (error) => {
-        console.error("Error fetching incidents:", error);
+        const normalized = normalizeFirebaseError(error, 'Failed to sync incidents');
+        console.error("Error fetching incidents:", normalized.details, error);
         setIncidents([]);
+        setError(normalized.details);
       });
       return () => unsubscribe();
     } catch (err) {
-      console.error("Error setting up listener:", err);
+      const normalized = normalizeFirebaseError(err, 'Failed to initialize incident listener');
+      console.error("Error setting up listener:", normalized.details, err);
       setIncidents([]);
+      setError(normalized.details);
     }
-  }, []);
+  }, [authLoading, user]);
 
   const filteredIncidents = incidents.filter(incident => {
     if (!searchQuery.trim()) return true;
@@ -194,6 +213,11 @@ export default function EmergencyMapPage() {
               className="w-full bg-[#030303] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-zinc-700"
             />
           </div>
+          {error && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-bold text-red-300 uppercase tracking-wider">
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
