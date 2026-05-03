@@ -1,5 +1,6 @@
 
 import { db } from '@/lib/firebase';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 import { 
   collection, 
   query, 
@@ -52,8 +53,9 @@ export const incidentService = {
 
       return incidents;
     } catch (error) {
-      console.error('Error fetching incidents:', error);
-      throw error;
+      const normalized = normalizeFirebaseError(error, 'Unable to fetch incidents');
+      console.error('Error fetching incidents:', normalized.details, error);
+      throw new Error(normalized.details);
     }
   },
 
@@ -75,8 +77,9 @@ export const incidentService = {
       
       return { id: docRef.id, ...incidentData };
     } catch (error) {
-      console.error('Error creating incident:', error);
-      throw error;
+      const normalized = normalizeFirebaseError(error, 'Unable to create incident');
+      console.error('Error creating incident:', normalized.details, error);
+      throw new Error(normalized.details);
     }
   }
 };
