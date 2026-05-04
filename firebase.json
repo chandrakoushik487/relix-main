@@ -8,7 +8,7 @@
   "hosting": [
     {
       "target": "main",
-      "public": ".",
+      "public": "public",
       "cleanUrls": true,
       "ignore": [
         "firebase.json",
