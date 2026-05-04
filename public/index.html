@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RELIX — Disaster Response, Reimagined.</title>
+  <meta name="description" content="RELIX is an AI-powered disaster response and civic issue coordination platform. Real-time damage reporting, OCR extraction, SVI prioritization, and volunteer dispatch for NGO teams." />
+  <meta property="og:title" content="RELIX — Disaster Response, Reimagined." />
+  <meta property="og:description" content="AI-powered disaster coordination with OCR, LLMs, location-aware dispatch, and open-source transparency." />
+  <meta property="og:image" content="https://relix-mvp-submission.web.app/og-image.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Inter', sans-serif;
+      background: #020205;
+      color: #f8fafc;
+      --accent-primary: #6366f1;
+      --accent-primary-strong: #4f46e5;
+      --accent-success: #10b981;
+      --accent-warning: #f59e0b;
+      --accent-danger: #ef4444;
+      --surface: rgba(255,255,255,0.04);
+      --surface-strong: rgba(255,255,255,0.08);
+      --border: rgba(148,163,184,0.14);
+      --muted: #94a3b8;
+      --text-main: #f8fafc;
+      --text-muted: #cbd5e1;
+      --panel-bg: #090b14;
+      --grid-line: rgba(148,163,184,0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      min-height: 100%;
+      background: #020205;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(99,102,241,0.08), transparent 24%), #020205;
+      background-attachment: fixed;
+      color: var(--text-main);
+      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px);
+      background-size: 24px 24px, 24px 24px, 120px 120px, 120px 120px;
+      background-position: 0 0, 0 0, 0 0, 0 0;
+      opacity: 0.28;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, a.button {
+      font: inherit;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .page-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px 96px;
+    }
+
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      transition: background 0.28s ease, border-color 0.28s ease, padding 0.28s ease;
+      background: rgba(8, 10, 19, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .top-nav.scrolled {
+      background: rgba(8, 10, 19, 0.98);
+      border-color: rgba(148,163,184,0.18);
+      padding: 16px 32px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.35rem;
+      letter-spacing: -0.05em;
+      font-weight: 800;
+      color: var(--accent-primary);
+    }
+
+    .logo span {
+      color: var(--accent-success);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.94rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      background: var(--accent-primary);
+      color: #fff;
+      text-transform: uppercase;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.86rem;
+      letter-spacing: 0.08em;
+      border: none;
+      transition: background 0.2s ease;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-primary-strong);
+    }
+
+    .mobile-toggle {
+      display: none;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(148,163,184,0.24);
+      background: rgba(15, 23, 42, 0.85);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mobile-toggle span,
+    .mobile-toggle span::before,
+    .mobile-toggle span::after {
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: #cbd5e1;
+      position: relative;
+      transition: transform 0.25s ease;
+    }
+
+    .mobile-toggle span::before,
+    .mobile-toggle span::after {
+      content: '';
+      position: absolute;
+      left: 0;
+    }
+
+    .mobile-toggle span::before { top: -6px; }
+    .mobile-toggle span::after { top: 6px; }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      inset: 76px 24px auto auto;
+      right: 0;
+      width: min(320px, calc(100% - 48px));
+      padding: 24px;
+      background: rgba(8, 10, 19, 0.98);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(148,163,184,0.14);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.2);
+      flex-direction: column;
+      gap: 18px;
+      z-index: 49;
+    }
+
+    .mobile-menu.open {
+      display: flex;
+    }
+
+    .mobile-menu a,
+    .mobile-menu .nav-cta {
+      width: 100%;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      align-items: center;
+      gap: 48px;
+      padding: 140px 0 80px;
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      display: grid;
+      gap: 28px;
+    }
+
+    .hero-copy p.overline {
+      margin: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent-warning);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero-copy h1 {
+      margin: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3.4rem, 6vw, 5.5rem);
+      line-height: 0.94;
+      letter-spacing: -0.04em;
+      max-width: 720px;
+      color: #f8fafc;
+    }
+
+    .hero-copy p.lead {
+      margin: 0;
+      font-size: 1.04rem;
+      line-height: 1.8;
+      max-width: 560px;
+      color: var(--text-muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .button-filled {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 26px;
+      background: var(--accent-primary);
+      color: #fff;
+      text-transform: uppercase;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.08em;
+      border: none;
+    }
+
+    .button-filled:hover {
+      background: var(--accent-primary-strong);
+    }
+
+    .button-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 26px;
+      background: transparent;
+      color: #f8fafc;
+      border-bottom: 1px solid rgba(255,255,255,0.24);
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .badge-row span {
+      border: 1px solid rgba(148,163,184,0.18);
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 620px;
+      background: #090b14;
+      border: 1px solid rgba(148,163,184,0.12);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .hero-visual::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(99,102,241,0.16), transparent 18%),
+        radial-gradient(circle at 75% 15%, rgba(255,255,255,0.08), transparent 10%),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 220px 220px, 180px 180px, 24px 24px, 24px 24px;
+      pointer-events: none;
+    }
+
+    .map-panel {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      min-height: 520px;
+      border: 1px solid rgba(148,163,184,0.12);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      padding: 26px;
+      box-shadow: 0 28px 80px rgba(0,0,0,0.35);
+    }
+
+    .map-grid {
+      position: absolute;
+      inset: 26px;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 64px 64px;
+      opacity: 0.75;
+    }
+
+    .map-panel-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      gap: 18px;
+    }
+
+    .map-badge {
+      position: absolute;
+      top: 22px;
+      right: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(16,185,129,0.14);
+      border: 1px solid rgba(16,185,129,0.2);
+      color: #d6f4e4;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+    }
+
+    .map-badge span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16,185,129,0.35);
+      animation: blink 1.6s infinite ease-in-out;
+    }
+
+    @keyframes blink {
+      0%, 60%, 100% { opacity: 1; transform: scale(1); }
+      30% { opacity: 0.35; transform: scale(0.88); }
+    }
+
+    .map-dot {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.28);
+    }
+
+    .dot-critical { background: #ef4444; top: 20%; left: 66%; animation: pulse-ring 2.2s infinite ease-in-out; }
+    .dot-high { background: #f59e0b; top: 47%; left: 56%; animation: pulse 2s infinite ease-in-out 0.2s; }
+    .dot-medium:nth-child(1) { background: #10b981; top: 64%; left: 26%; animation: pulse 2.2s infinite ease-in-out 0.4s; }
+    .dot-medium:nth-child(2) { background: #10b981; top: 30%; left: 28%; animation: pulse 2.1s infinite ease-in-out 0.5s; }
+    .dot-low { background: #7dd3fc; top: 72%; left: 74%; animation: pulse 2.3s infinite ease-in-out 0.7s; }
+
+    .dot-critical::before {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border: 2px solid rgba(239,68,68,0.35);
+      border-radius: 50%;
+      animation: ring 2.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.16); opacity: 0.8; }
+    }
+
+    @keyframes ring {
+      0% { transform: scale(0.9); opacity: 0.55; }
+      60% { transform: scale(1.4); opacity: 0; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.12); opacity: 0.9; }
+    }
+
+    .map-footer {
+      position: absolute;
+      bottom: 22px;
+      left: 22px;
+      right: 22px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.88);
+    }
+
+    .map-footer div {
+      background: rgba(255,255,255,0.06);
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .section {
+      position: relative;
+      padding: 96px 0;
+    }
+
+    .section h2,
+    .section h3,
+    .section p,
+    .section .section-tag {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .section.visible h2,
+    .section.visible h3,
+    .section.visible p,
+    .section.visible .section-tag {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .section-tag {
+      display: inline-block;
+      margin-bottom: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-warning);
+      font-size: 0.84rem;
+    }
+
+    .section-title {
+      margin: 0 0 18px;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.7rem, 4vw, 3.4rem);
+      line-height: 1.05;
+      max-width: 780px;
+      color: #f8fafc;
+    }
+
+    .section-grid {
+      display: grid;
+      gap: 24px;
+    }
+
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      display: grid;
+      gap: 12px;
+      padding: 30px 28px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      min-height: 160px;
+    }
+
+    .stat-card strong {
+      display: block;
+      font-size: clamp(2.7rem, 4vw, 3.4rem);
+      line-height: 1;
+      font-family: 'Syne', sans-serif;
+      color: #f8fafc;
+    }
+
+    .stat-card span {
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .problem-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .problem-card {
+      position: relative;
+      padding: 28px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+      transition: background 0.25s ease, transform 0.25s ease;
+    }
+
+    .problem-card:hover {
+      background: rgba(99,102,241,0.12);
+      transform: translateY(-4px);
+    }
+
+    .problem-card::before {
+      content: attr(data-step);
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 4rem;
+      color: rgba(248,250,252,0.08);
+      font-family: 'Syne', sans-serif;
+      line-height: 1;
+    }
+
+    .problem-card h3 {
+      margin: 0 0 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      color: #f8fafc;
+    }
+
+    .problem-card p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    .problem-deck {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .paper-mock {
+      padding: 28px;
+      background: #080a12;
+      border: 1px solid rgba(99,102,241,0.14);
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .paper-mock::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 12px;
+      background: linear-gradient(90deg, var(--accent-primary), transparent);
+    }
+
+    .paper-lines {
+      display: grid;
+      gap: 12px;
+      padding-top: 12px;
+    }
+
+    .paper-line {
+      height: 12px;
+      background: rgba(148,163,184,0.1);
+      width: 100%;
+      border-radius: 2px;
+    }
+
+    .paper-line.short { width: 65%; }
+    .paper-line.medium { width: 80%; }
+    .paper-line.label { width: 45%; height: 16px; background: rgba(99,102,241,0.15); }
+
+    .json-block {
+      background: #02040c;
+      color: #e2e8f0;
+      padding: 26px;
+      border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.92rem;
+      line-height: 1.75;
+      overflow-x: auto;
+      min-height: 380px;
+      border: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .json-block code {
+      white-space: pre-wrap;
+    }
+
+    .pipeline-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .pipeline-step {
+      position: relative;
+      padding: 28px;
+      border-left: 4px solid var(--accent-primary);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(148,163,184,0.14);
+      transition: transform 0.25s ease, background 0.25s ease;
+      overflow: hidden;
+    }
+
+    .pipeline-step:hover {
+      transform: translateY(-4px);
+      background: rgba(99,102,241,0.12);
+    }
+
+    .pipeline-step::before {
+      content: attr(data-index);
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 4rem;
+      color: rgba(99,102,241,0.08);
+      font-family: 'Syne', sans-serif;
+    }
+
+    .pipeline-step h4 {
+      margin: 0 0 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.25rem;
+      color: #f8fafc;
+    }
+
+    .pipeline-step p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    .features-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .feature-card {
+      padding: 28px;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: rgba(255,255,255,0.03);
+      display: grid;
+      gap: 16px;
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      background: rgba(99,102,241,0.12);
+    }
+
+    .feature-card h4 {
+      margin: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.3rem;
+      color: #f8fafc;
+    }
+
+    .feature-card p {
+      margin: 0;
+      line-height: 1.8;
+      color: var(--text-muted);
+    }
+
+    .feature-tags {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .feature-tags span {
+      background: rgba(99,102,241,0.08);
+      padding: 8px 10px;
+      border: 1px solid rgba(99,102,241,0.16);
+    }
+
+    .sdg-section {
+      background: #07090f;
+      color: #f8fafc;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sdg-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 52px 52px;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .sdg-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .sdg-card {
+      position: relative;
+      padding: 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      z-index: 1;
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .sdg-card:hover {
+      transform: translateY(-4px);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .sdg-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2rem;
+      margin: 0 0 12px;
+      color: var(--accent-success);
+    }
+
+    .sdg-card h4 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+      color: #f8fafc;
+    }
+
+    .sdg-card p {
+      margin: 0;
+      color: #cbd5e1;
+      line-height: 1.75;
+    }
+
+    .tech-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(180px, 220px);
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .tech-item {
+      min-width: 180px;
+      padding: 24px 22px;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .tech-item span {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .tech-item strong {
+      display: block;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.18rem;
+      color: #f8fafc;
+    }
+
+    .architecture {
+      padding: 72px 0 32px;
+    }
+
+    .architecture-box {
+      border: 1px solid rgba(148,163,184,0.22);
+      background: rgba(255,255,255,0.03);
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .architecture-box pre {
+      margin: 0;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #dbeafe;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 36px;
+      align-items: start;
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .team-card {
+      padding: 24px;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: rgba(255,255,255,0.03);
+      display: grid;
+      gap: 16px;
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .team-card:hover {
+      transform: translateY(-4px);
+      background: rgba(99,102,241,0.12);
+    }
+
+    .avatar {
+      width: 56px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(99,102,241,0.18);
+      background: #0f1220;
+      color: #c7d2fe;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .team-card h4 {
+      margin: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.08rem;
+      color: #f8fafc;
+    }
+
+    .team-card p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    .cta-split {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .cta-split h2 {
+      margin: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3rem, 5vw, 4.2rem);
+      line-height: 0.95;
+      color: #f8fafc;
+    }
+
+    .cta-split h2 em {
+      font-style: italic;
+      font-family: 'Inter', sans-serif;
+      color: var(--accent-success);
+    }
+
+    .cta-panel {
+      display: grid;
+      gap: 20px;
+      padding: 28px;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .cta-panel p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .button-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 24px;
+      border: 1px solid rgba(99,102,241,0.7);
+      color: #a5b4fc;
+      background: transparent;
+      text-transform: uppercase;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.08em;
+    }
+
+    .footer {
+      padding: 40px 0 20px;
+      border-top: 1px solid rgba(148,163,184,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .footer nav {
+      display: flex;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .footer .center-text {
+      flex: 1;
+      text-align: center;
+      color: var(--text-main);
+    }
+
+    .footer a:hover {
+      color: var(--accent-primary);
+    }
+
+    .bottom-note {
+      margin-top: 18px;
+      font-size: 0.88rem;
+      text-align: center;
+      color: #94a3b8;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stat-number {
+      display: inline-block;
+    }
+
+    @media (max-width: 1080px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 120px;
+      }
+      .hero-visual {
+        min-height: 500px;
+      }
+      .about-grid,
+      .problem-deck {
+        grid-template-columns: 1fr;
+      }
+      .team-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .stats-strip,
+      .problem-grid,
+      .pipeline-grid,
+      .features-grid,
+      .sdg-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .top-nav {
+        padding: 16px 24px;
+      }
+      .nav-links {
+        gap: 18px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page-shell {
+        padding: 0 24px 72px;
+      }
+      .top-nav {
+        padding: 14px 20px;
+      }
+      .nav-links,
+      .nav-cta {
+        display: none;
+      }
+      .mobile-toggle {
+        display: grid;
+      }
+      .hero {
+        padding-top: 110px;
+      }
+      .hero-copy {
+        gap: 24px;
+      }
+      .hero-visual {
+        display: none;
+      }
+      .stats-strip,
+      .problem-grid,
+      .pipeline-grid,
+      .features-grid,
+      .sdg-grid,
+      .team-grid {
+        grid-template-columns: 1fr;
+      }
+      .tech-row {
+        grid-auto-columns: minmax(220px, 80vw);
+      }
+      .cta-split {
+        grid-template-columns: 1fr;
+      }
+      .footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .footer .center-text {
+        order: -1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-nav" id="top-nav">
+    <div class="logo">REL<span>IX</span></div>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#sdg">SDGs</a>
+      <a href="#tech">Tech</a>
+      <a href="#about">About</a>
+    </nav>
+    <a class="nav-cta" href="https://relix-mvp-submission.web.app" target="_blank" rel="noreferrer">Live Demo →</a>
+    <button class="mobile-toggle" aria-label="Open navigation" id="mobileToggle"><span></span></button>
+  </header>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#sdg">SDGs</a>
+    <a href="#tech">Tech</a>
+    <a href="#about">About</a>
+    <a class="nav-cta" href="https://relix-mvp-submission.web.app" target="_blank" rel="noreferrer">Live Demo →</a>
+  </div>
+
+  <main class="page-shell">
+    <section class="hero" id="home">
+      <div class="hero-copy">
+        <p class="overline reveal">— Relief Intelligence Exchange</p>
+        <h1 class="reveal">Disaster / Response, / Reimagined.</h1>
+        <p class="lead reveal">RELIX bridges the gap between offline field reports and intelligent digital coordination — turning handwritten forms into real-time action.</p>
+        <div class="hero-actions reveal">
+          <a class="button-filled" href="https://relix-mvp-submission.web.app" target="_blank" rel="noreferrer">Open Platform →</a>
+          <a class="button-ghost" href="#how">See how it works</a>
+        </div>
+        <div class="badge-row reveal">
+          <span>AI-Powered</span>
+          <span>OCR + LLM</span>
+          <span>Real-Time</span>
+          <span>Open Source</span>
+        </div>
+      </div>
+      <div class="hero-visual reveal">
+        <div class="map-panel">
+          <div class="map-grid"></div>
+          <div class="map-panel-content">
+            <div class="map-badge"><span></span>AI Active</div>
+            <div class="map-dot dot-critical"></div>
+            <div class="map-dot dot-high"></div>
+            <div class="map-dot dot-medium"></div>
+            <div class="map-dot dot-medium"></div>
+            <div class="map-dot dot-low"></div>
+            <div class="map-footer">
+              <div>Reports: 248</div>
+              <div>Critical: 31</div>
+              <div>Affected: 12k</div>
+              <div>NGOs: 9</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section stats-strip reveal" id="stats">
+      <div class="stat-card">
+        <strong><span class="stat-number" data-target="4">0</span></strong>
+        <span>UN SDGs Addressed</span>
+      </div>
+      <div class="stat-card">
+        <strong><span class="stat-number" data-target="60">0</span>%</strong>
+        <span>Urgency weight in SVI</span>
+      </div>
+      <div class="stat-card">
+        <strong><span class="stat-number" data-target="2">0</span>x</strong>
+        <span>Faster processing</span>
+      </div>
+      <div class="stat-card">
+        <strong><span class="stat-number" data-target="100">0</span>%</strong>
+        <span>Open source platform</span>
+      </div>
+    </section>
+
+    <section class="section" id="problem">
+      <span class="section-tag reveal">— The Problem</span>
+      <h2 class="section-title reveal">Field data is trapped in analog format.</h2>
+      <div class="problem-grid">
+        <div class="problem-card" data-step="01">
+          <h3>Delayed Response</h3>
+          <p>Hours are lost manually digitizing reports while communities wait for help.</p>
+        </div>
+        <div class="problem-card" data-step="02">
+          <h3>Misallocated Resources</h3>
+          <p>Volunteers are dispatched without clear priority or location context.</p>
+        </div>
+        <div class="problem-card" data-step="03">
+          <h3>Invisible Communities</h3>
+          <p>Vulnerable populations remain uncounted because their records never enter the digital system.</p>
+        </div>
+      </div>
+      <div class="problem-deck reveal">
+        <div class="paper-mock">
+          <div class="paper-lines">
+            <div class="paper-line label"></div>
+            <div class="paper-line short"></div>
+            <div class="paper-line medium"></div>
+            <div class="paper-line"></div>
+            <div class="paper-line medium"></div>
+            <div class="paper-line"></div>
+            <div class="paper-line short"></div>
+            <div class="paper-line"></div>
+          </div>
+          <div class="paper-lines">
+            <div class="paper-line"></div>
+            <div class="paper-line short"></div>
+            <div class="paper-line medium"></div>
+          </div>
+        </div>
+        <div class="json-block">
+          <code>{
+  "reportId": "REL-2026-0042",
+  "location": {
+    "province": "Central",
+    "district": "San Miguel",
+    "coordinates": [14.650, -90.064]
+  },
+  "urgency": "Critical",
+  "issueType": "Flood damage",
+  "affectedPopulation": 423,
+  "resourcesNeeded": ["Medical team", "Water purification", "Shelter"],
+  "svI_score": 92
+}</code>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <span class="section-tag reveal">— How it works</span>
+      <h2 class="section-title reveal">A four-step pipeline from paper to priority action.</h2>
+      <div class="pipeline-grid">
+        <div class="pipeline-step" data-index="1">
+          <h4>Upload</h4>
+          <p>NGO workers photograph handwritten forms and submit them through the RELIX intake flow.</p>
+        </div>
+        <div class="pipeline-step" data-index="2">
+          <h4>AI Extraction</h4>
+          <p>OCR + LLM extracts location, urgency, and issue type. Google Vision API is primary and Tesseract serves as fallback.</p>
+        </div>
+        <div class="pipeline-step" data-index="3">
+          <h4>Prioritize</h4>
+          <p>SVI scores classify reports as Critical, High, Medium, or Low using urgency (60%) and scale (40%).</p>
+        </div>
+        <div class="pipeline-step" data-index="4">
+          <h4>Coordinate</h4>
+          <p>The dashboard assigns volunteers, tracks resolution, and keeps teams aligned in real time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <span class="section-tag reveal">— Features</span>
+      <h2 class="section-title reveal">Operational capabilities for every disaster response team.</h2>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <h4>Real-Time Dashboard</h4>
+          <p>4 KPI cards, interactive color-coded maps, AI hotspot detection, surge alerts, and volunteer gap analysis keep every incident visible.</p>
+          <div class="feature-tags">
+            <span>Live maps</span>
+            <span>AI Insights</span>
+            <span>Recharts</span>
+          </div>
+        </div>
+        <div class="feature-card reveal">
+          <h4>AI-Powered Data Pipeline</h4>
+          <p>Google Vision API + Tesseract OCR converts handwritten documents into structured records with field-level confidence scores.</p>
+          <div class="feature-tags">
+            <span>OCR</span>
+            <span>Claude API</span>
+            <span>FastAPI</span>
+            <span>Python</span>
+          </div>
+        </div>
+        <div class="feature-card reveal">
+          <h4>Social Vulnerability Index (SVI)</h4>
+          <p>Weighted scoring uses urgency (60%) and scale (40%). Location clustering, density multipliers, and auto-recalculation highlight the most vulnerable areas.</p>
+          <div class="feature-tags">
+            <span>Auto-score</span>
+            <span>4-tier system</span>
+            <span>Real-time</span>
+          </div>
+        </div>
+        <div class="feature-card reveal">
+          <h4>Proximity-Aware Volunteer Dispatch</h4>
+          <p>Haversine distance scoring, skill matching, and workload balancing support auto-assignment for critical needs and admin confirmation for lower priority cases.</p>
+          <div class="feature-tags">
+            <span>Auto-assign</span>
+            <span>Email notify</span>
+            <span>Skill match</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section sdg-section" id="sdg">
+      <span class="section-tag reveal">— SDGs</span>
+      <h2 class="section-title reveal" style="color: #f5f5f5;">Built for the world's hardest problems.</h2>
+      <div class="sdg-grid">
+        <div class="sdg-card reveal">
+          <p class="sdg-number">3</p>
+          <h4>Good Health & Well-being</h4>
+          <p>Health issue tracking and volunteer dispatch for medical crises.</p>
+        </div>
+        <div class="sdg-card reveal">
+          <p class="sdg-number">6</p>
+          <h4>Clean Water & Sanitation</h4>
+          <p>Water contamination detection and priority response.</p>
+        </div>
+        <div class="sdg-card reveal">
+          <p class="sdg-number">11</p>
+          <h4>Sustainable Cities & Communities</h4>
+          <p>Civic issue mapping and infrastructure damage tracking.</p>
+        </div>
+        <div class="sdg-card reveal">
+          <p class="sdg-number">17</p>
+          <h4>Partnerships for the Goals</h4>
+          <p>Connecting NGOs, volunteers, and communities on one platform.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tech">
+      <span class="section-tag reveal">— Tech stack</span>
+      <h2 class="section-title reveal">Infrastructure built for scalable response.</h2>
+      <div class="tech-row reveal">
+        <div class="tech-item"><span>Frontend</span><strong>Next.js 16</strong></div>
+        <div class="tech-item"><span>Styling</span><strong>Tailwind CSS 4</strong></div>
+        <div class="tech-item"><span>State</span><strong>Zustand</strong></div>
+        <div class="tech-item"><span>API</span><strong>Node.js + Express</strong></div>
+        <div class="tech-item"><span>Database</span><strong>Cloud Firestore</strong></div>
+        <div class="tech-item"><span>AI</span><strong>Claude API</strong></div>
+        <div class="tech-item"><span>Vision</span><strong>Google Vision</strong></div>
+        <div class="tech-item"><span>Hosting</span><strong>Firebase Hosting</strong></div>
+      </div>
+    </section>
+
+    <section class="section architecture reveal" id="architecture">
+      <span class="section-tag">— Architecture</span>
+      <h2 class="section-title">System design for resilient coordination.</h2>
+      <div class="architecture-box">
+        <pre>┌─────────────────────────────────────────┐
+│  Frontend: Next.js + React 19 + Mapbox  │
+├──────────────┬──────────────────────────┤
+│ Backend:     │  AI Service:             │
+│ Node/Express │  FastAPI + Claude API    │
+│ Firestore    │  Google Vision + Tesser. │
+└──────────────┴──────────────────────────┘</pre>
+      </div>
+    </section>
+
+    <section class="section" id="about">
+      <span class="section-tag reveal">— About / Team</span>
+      <h2 class="section-title reveal">RELIX was built to ensure no community goes unserved during a disaster because their voices couldn't be digitized fast enough.</h2>
+      <div class="about-grid">
+        <div>
+          <p class="reveal">RELIX brings editorial clarity to emergency response workflows. Designed for NGO workers, field coordinators, and volunteers, it turns ambiguous paper reports into structured action so that every report can be routed, scored, and resolved without delay.</p>
+        </div>
+        <div class="team-grid reveal">
+          <div class="team-card">
+            <div class="avatar">GD</div>
+            <h4>GDG Solutions</h4>
+            <p>Community partner enabling real-world readiness and deployment.</p>
+          </div>
+        </div>
+      </div>
+      <p class="bottom-note">Built with ❤️ for communities that need it most</p>
+    </section>
+
+    <section class="section" id="cta">
+      <div class="cta-split reveal">
+        <h2>Ready to <em>respond</em> faster?</h2>
+        <div class="cta-panel">
+          <p>RELIX is live and open for the GDG Solution Challenge 2026. Explore the platform, review the architecture, or contribute to the system that makes aid faster and more transparent.</p>
+          <div class="cta-buttons">
+            <a class="button-filled" href="https://relix-6218b.web.app/" target="_blank" rel="noreferrer">Open Live Demo →</a>
+            <a class="button-outline" href="https://github.com/chandrakoushik487/relix-main" target="_blank" rel="noreferrer">View on GitHub</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="logo">REL<span>IX</span></div>
+      <div class="center-text">GDG Solution Challenge 2026</div>
+      <nav>
+        <a href="https://relix-6218b.web.app/" target="_blank" rel="noreferrer">Live Demo</a>
+        <a href="https://github.com/chandrakoushik487/relix-main" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="#">License</a>
+      </nav>
+    </footer>
+  </main>
+
+  <script>
+    const topNav = document.getElementById('top-nav');
+    const mobileToggle = document.getElementById('mobileToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const anchors = document.querySelectorAll('.mobile-menu a');
+
+    mobileToggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('open');
+    });
+
+    anchors.forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+      });
+    });
+
+    window.addEventListener('scroll', () => {
+      const offset = window.scrollY;
+      topNav.classList.toggle('scrolled', offset > 30);
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+          if (entry.target.classList.contains('stats-strip')) {
+            runCountUp();
+          }
+        }
+      });
+    }, { threshold: 0.18 });
+
+    document.querySelectorAll('.reveal, .section').forEach((el) => observer.observe(el));
+
+    function runCountUp() {
+      document.querySelectorAll('.stat-number').forEach((el) => {
+        const target = Number(el.dataset.target);
+        const duration = 1200;
+        const start = 0;
+        const startTime = performance.now();
+
+        const step = (time) => {
+          const progress = Math.min((time - startTime) / duration, 1);
+          el.textContent = Math.floor(progress * (target - start) + start);
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          }
+        };
+
+        requestAnimationFrame(step);
+      });
+    }
+  </script>
+</body>
+</html>
