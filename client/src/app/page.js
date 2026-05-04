@@ -48,7 +48,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white selection:bg-indigo-500/30 font-sans">
+    <div className="min-h-screen bg-transparent text-white selection:bg-indigo-500/30 font-sans">
       {/* Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-500 ${
         scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-white/5 py-4' : 'bg-transparent py-6'
@@ -80,7 +80,8 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-48 pb-32 overflow-hidden">
-        {/* Animated Background Gradient */}
+        {/* Full-page grid overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.12),transparent_28%),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px,24px_24px,24px_24px] opacity-40 pointer-events-none"></div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-indigo-600/20 blur-[120px] rounded-full opacity-30 pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
