@@ -8,8 +8,9 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
+  // updateProfile intentionally removed — role is stored in Firestore only
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   CheckCircle2,
@@ -23,7 +24,7 @@ import {
   Lock,
   AlertCircle
 } from 'lucide-react';
-import { updateProfile } from 'firebase/auth';
+// updateProfile import removed — see firebase/auth import block above
 import { useAuth } from '@/context/AuthContext';
 import { normalizeFirebaseError } from '@/lib/firebaseError';
 
@@ -58,8 +59,11 @@ const getFirestoreProfileWriteErrorMessage = (error) => {
 };
 export default function LoginPage() {
   const router = useRouter();
-  const { setRole: setGlobalRole } = useAuth();
-  const [role, setRole] = useState('NGO Staff');
+  // BUG FIX 4: get the Firestore-resolved role from AuthContext, not just the setter.
+  // The local `pickerRole` is used only for sign-up / Google sign-in (new user creation).
+  // For existing users logging in, we read the role that AuthContext resolved from Firestore.
+  const { setRole: setGlobalRole, role: authRole } = useAuth();
+  const [pickerRole, setPickerRole] = useState('NGO Staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -90,15 +94,38 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [lockoutUntil]);
 
-  const handleRoleRedirect = async (selectedRole) => {
-    // Store role in global context and localStorage
-    setGlobalRole(selectedRole);
-    localStorage.setItem('userRole', selectedRole);
-    
-    // Small delay to ensure state is synced
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    if (selectedRole === 'Volunteer') {
+  /**
+   * Redirect after a successful sign-in.
+   *
+   * For EXISTING users: AuthContext resolves the real role from Firestore
+   * asynchronously. We poll for up to 2 s, then fall back to pickerRole.
+   * This prevents routing someone to /dashboard when their Firestore role
+   * is actually 'Volunteer', and vice-versa.
+   *
+   * For NEW users (sign-up / first Google login): the role has just been
+   * written to Firestore by this page, so `overrideRole` is passed directly.
+   */
+  const handleRoleRedirect = async (overrideRole = null) => {
+    let resolvedRole = overrideRole;
+
+    if (!resolvedRole) {
+      // Wait up to 2 s for AuthContext to resolve the Firestore role
+      const deadline = Date.now() + 2000;
+      while (!resolvedRole && Date.now() < deadline) {
+        if (authRole) {
+          resolvedRole = authRole;
+          break;
+        }
+        await new Promise(r => setTimeout(r, 100));
+      }
+      // Final fallback — use the picker selection
+      resolvedRole = resolvedRole || pickerRole;
+    }
+
+    setGlobalRole(resolvedRole);
+    localStorage.setItem('userRole', resolvedRole);
+
+    if (resolvedRole === 'Volunteer') {
       router.push('/volunteer/dashboard');
     } else {
       router.push('/dashboard');
@@ -133,7 +160,9 @@ export default function LoginPage() {
       setEmail('');
       setPassword('');
       setFailedAttempts(0);
-      await handleRoleRedirect(role);
+      // BUG FIX 4 (continued): do NOT pass pickerRole — let handleRoleRedirect
+      // wait for AuthContext to resolve the real role from Firestore.
+      await handleRoleRedirect();
     } catch (error) {
       const msg = getAuthErrorMessage(error.code);
 
@@ -161,26 +190,37 @@ export default function LoginPage() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      
-      // Set displayName to role so protected layout can read it
-      await updateProfile(result.user, { displayName: role });
-      
-      // Ensure user document exists in Firestore for role persistence
-      try {
-        await setDoc(doc(db, 'users', result.user.uid), {
-          email: result.user.email || '',
-          username: result.user.displayName || result.user.email?.split('@')[0] || '',
-          phone: '',
-          bio: '',
-          role: role,
-          createdAt: serverTimestamp(),
-          auth_provider: 'google'
-        }, { merge: true }); // Use merge: true to avoid overwriting existing data if they've signed in before
-      } catch (fsError) {
-        throw fsError;
-      }
-      
-      await handleRoleRedirect(role);
+
+      // BUG FIX 5: NEVER use updateProfile to store the role.
+      // updateProfile({ displayName: role }) would overwrite the user's real
+      // Google display name with a role string ('NGO Staff' / 'Volunteer').
+      // Role persistence is handled exclusively through Firestore.
+
+      // Check if user already has a Firestore doc (returning Google user)
+      const userDocRef = doc(db, 'users', result.user.uid);
+      const existingDoc = await getDoc(userDocRef);
+      const isNewUser = !existingDoc.exists();
+
+      // For returning users: preserve their existing role.
+      // For new users: use the picker selection.
+      const roleToSave = isNewUser
+        ? pickerRole
+        : (existingDoc.data()?.role || pickerRole);
+
+      await setDoc(userDocRef, {
+        email: result.user.email || '',
+        // Use the real Google display name, not the role string
+        username: result.user.displayName || result.user.email?.split('@')[0] || '',
+        phone: '',
+        bio: '',
+        role: roleToSave,
+        createdAt: serverTimestamp(),
+        auth_provider: 'google',
+      }, { merge: true });
+
+      // For new users, we know the role; for returning users, let AuthContext
+      // resolve it from Firestore (handleRoleRedirect polls for it).
+      await handleRoleRedirect(isNewUser ? roleToSave : null);
     } catch (error) {
       if (error?.code?.startsWith('auth/')) {
         setErrorMsg(getAuthErrorMessage(error.code));
@@ -195,7 +235,7 @@ export default function LoginPage() {
   const handleSignUp = async (e) => {
     if (e) e.preventDefault();
     if (!email || !password) {
-      setErrorMsg("Please enter an email and password to sign up.");
+      setErrorMsg('Please enter an email and password to sign up.');
       return;
     }
     if (!validateEmail(email)) {
@@ -211,22 +251,21 @@ export default function LoginPage() {
     setErrorMsg('');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Set displayName to role so protected layout can read it
-      await updateProfile(userCredential.user, { displayName: role });
-      // Also store user data in Firestore for reference
-      try {
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          email: email,
-          username: userCredential.user.displayName || email.split('@')[0] || '',
-          phone: '',
-          bio: '',
-          role: role,
-          createdAt: serverTimestamp()
-        }, { merge: true });
-      } catch (fsError) {
-        throw fsError;
-      }
-      await handleRoleRedirect(role);
+
+      // BUG FIX 5 (signup path): do NOT use updateProfile to store the role.
+      // Store in Firestore only — AuthContext reads from there.
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        email: email,
+        username: email.split('@')[0] || '',
+        phone: '',
+        bio: '',
+        role: pickerRole,
+        createdAt: serverTimestamp(),
+        auth_provider: 'email',
+      }, { merge: true });
+
+      // New user — we already know the role, pass it directly
+      await handleRoleRedirect(pickerRole);
     } catch (error) {
       if (error?.code?.startsWith('auth/')) {
         setErrorMsg(getAuthErrorMessage(error.code));
@@ -342,18 +381,20 @@ export default function LoginPage() {
             <p className="text-zinc-500 text-sm">Enter your credentials to access RELIX</p>
           </div>
 
-          {/* Role Selector */}
+          {/* Role Selector — used for sign-up and new Google accounts.
+              Returning users are routed by their Firestore role automatically. */}
           <div className="flex p-1.5 bg-[#0a0a0a] border border-white/[0.08] rounded-2xl mb-8">
             {['NGO Staff', 'Volunteer'].map((r) => (
               <button
                 key={r}
                 type="button"
-                onClick={() => setRole(r)}
+                onClick={() => setPickerRole(r)}
                 disabled={isFormDisabled}
-                className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider ${role === r
+                className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider ${
+                  pickerRole === r
                     ? 'bg-zinc-800 text-white border border-white/10 shadow-lg'
                     : 'text-zinc-500 hover:text-zinc-300'
-                  } ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {r}
               </button>
