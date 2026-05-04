@@ -10,9 +10,9 @@
   "dependencies": {
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/logging-winston": "^6.0.1",
+    "@google-cloud/secret-manager": "^6.1.2",
     "@google-cloud/storage": "^7.19.0",
     "@google-cloud/tasks": "^6.2.1",
-    "bull": "^4.12.2",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.4.5",
@@ -22,7 +22,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.1",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.1.1",
     "node-tesseract-ocr": "^2.2.1",
     "nodemailer": "^6.9.13",
     "sharp": "^0.33.3",
@@ -30,6 +30,6 @@
     "twilio": "^5.0.4",
     "winston": "^3.13.0",
     "xss": "^1.0.15",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   }
 }

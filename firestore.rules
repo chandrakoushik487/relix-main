@@ -10,10 +10,30 @@ service cloud.firestore {
 
       // Authenticated users can create new issues
       allow create: if request.auth != null
-        && request.resource.data.keys().hasAll(['description', 'problem_type', 'location', 'urgency_level', 'status']);
+        && request.resource.data.keys().hasAll(['issue_description', 'problem_type', 'area', 'urgency_level', 'status']);
 
       // Only admins or the system (server-side with admin SDK bypasses rules) can update/delete
       allow update, delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
+    // Tasks collection: authenticated users can read and create; updates allowed for assigned users
+    match /tasks/{taskId} {
+      // Any authenticated user can read tasks
+      allow read: if request.auth != null;
+
+      // Authenticated users can create new tasks
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['title', 'status', 'priority']);
+
+      // Users can update tasks if they are assigned or are admins
+      allow update: if request.auth != null
+        && (request.auth.token.admin == true
+            || resource.data.assignedTo == request.auth.uid
+            || request.resource.data.assignedTo == request.auth.uid);
+
+      // Only admins can delete tasks
+      allow delete: if request.auth != null
         && request.auth.token.admin == true;
     }
 
@@ -23,10 +43,9 @@ service cloud.firestore {
       allow write: if false; // Admin SDK only
     }
 
-    // Users collection: users can read/write their own profile
+    // Users collection: users can only access their own profile
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Deny everything else by default

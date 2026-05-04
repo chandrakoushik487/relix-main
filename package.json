@@ -13,16 +13,22 @@
     "dev:server": "npm run dev --workspace=server",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "lint": "eslint .",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\""
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "deploy": "firebase deploy --only hosting:main --project relix-6218b --non-interactive"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "es-abstract": "^1.24.2",
     "eslint": "^8.57.0",
+    "firebase-tools": "^13.10.0",
     "husky": "^9.0.11",
-    "prettier": "^3.2.5"
+    "prettier": "^3.2.5",
+    "update-notifier-cjs": "^5.1.7"
   },
   "dependencies": {
+    "depd": "^2.0.0",
     "enhanced-resolve": "^5.20.1",
-    "firebase": "^12.12.1"
+    "firebase": "^12.12.1",
+    "spawn-command": "^1.0.0"
   }
 }

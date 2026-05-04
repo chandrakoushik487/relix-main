@@ -9,7 +9,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   CheckCircle2,
@@ -24,6 +24,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { updateProfile } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,8 +49,16 @@ const getAuthErrorMessage = (errorCode) => {
   return errorMap[errorCode] || 'Unable to sign in. Please check your credentials.';
 };
 
+const getFirestoreProfileWriteErrorMessage = (error) => {
+  const normalized = normalizeFirebaseError(error, 'Profile sync failed');
+  if (normalized.code === 'permission-denied') {
+    return 'Authentication succeeded, but Firestore blocked profile write. Check users collection rules.';
+  }
+  return `Authentication succeeded, but profile sync failed: ${normalized.details}`;
+};
 export default function LoginPage() {
   const router = useRouter();
+  const { setRole: setGlobalRole } = useAuth();
   const [role, setRole] = useState('NGO Staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,8 +90,14 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [lockoutUntil]);
 
-  const handleRoleRedirect = (selectedRole) => {
+  const handleRoleRedirect = async (selectedRole) => {
+    // Store role in global context and localStorage
+    setGlobalRole(selectedRole);
     localStorage.setItem('userRole', selectedRole);
+    
+    // Small delay to ensure state is synced
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     if (selectedRole === 'Volunteer') {
       router.push('/volunteer/dashboard');
     } else {
@@ -117,7 +133,7 @@ export default function LoginPage() {
       setEmail('');
       setPassword('');
       setFailedAttempts(0);
-      handleRoleRedirect(role);
+      await handleRoleRedirect(role);
     } catch (error) {
       const msg = getAuthErrorMessage(error.code);
 
@@ -145,11 +161,32 @@ export default function LoginPage() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      
       // Set displayName to role so protected layout can read it
       await updateProfile(result.user, { displayName: role });
-      handleRoleRedirect(role);
+      
+      // Ensure user document exists in Firestore for role persistence
+      try {
+        await setDoc(doc(db, 'users', result.user.uid), {
+          email: result.user.email || '',
+          username: result.user.displayName || result.user.email?.split('@')[0] || '',
+          phone: '',
+          bio: '',
+          role: role,
+          createdAt: serverTimestamp(),
+          auth_provider: 'google'
+        }, { merge: true }); // Use merge: true to avoid overwriting existing data if they've signed in before
+      } catch (fsError) {
+        throw fsError;
+      }
+      
+      await handleRoleRedirect(role);
     } catch (error) {
-      setErrorMsg(getAuthErrorMessage(error.code));
+      if (error?.code?.startsWith('auth/')) {
+        setErrorMsg(getAuthErrorMessage(error.code));
+      } else {
+        setErrorMsg(getFirestoreProfileWriteErrorMessage(error));
+      }
     } finally {
       setLoading(null);
     }
@@ -180,15 +217,22 @@ export default function LoginPage() {
       try {
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           email: email,
+          username: userCredential.user.displayName || email.split('@')[0] || '',
+          phone: '',
+          bio: '',
           role: role,
-          created_at: new Date().toISOString()
-        });
+          createdAt: serverTimestamp()
+        }, { merge: true });
       } catch (fsError) {
-        console.warn("Failed to write to users collection. Please ensure firestore.rules are deployed:", fsError);
+        throw fsError;
       }
-      handleRoleRedirect(role);
+      await handleRoleRedirect(role);
     } catch (error) {
-      setErrorMsg(getAuthErrorMessage(error.code));
+      if (error?.code?.startsWith('auth/')) {
+        setErrorMsg(getAuthErrorMessage(error.code));
+      } else {
+        setErrorMsg(getFirestoreProfileWriteErrorMessage(error));
+      }
     } finally {
       setLoading(null);
     }

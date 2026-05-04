@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useChartData } from '@/lib/useChartData';
+import { useIncidents } from '@/hooks/useIncidents';
+import Link from 'next/link';
 import { 
   AlertTriangle, 
   Users, 
@@ -16,7 +18,9 @@ import {
   Shield,
   Download,
   Plus,
-  Search
+  Search,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 
 // Dynamic imports for charts
@@ -76,13 +80,50 @@ const IncidentItem = ({ type, title, location, time, severity }) => (
 );
 
 export default function Dashboard() {
-  const { chartData, metrics, loading, isLive, refetch } = useChartData();
+  const { chartData, metrics, loading, isLive, error, refetch } = useChartData();
+  const { incidents } = useIncidents();
   const [activeTab, setActiveTab] = useState('overview');
   const [isAssignModalOpen, setAssignModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Get data from analytics API
+      const response = await fetch('/api/analytics');
+      const data = await response.json();
+      
+      // Create CSV content
+      const csvContent = `Category,Count\nCritical Issues,${data.critical || 0}\nAssigned Tasks,${data.assigned || 0}\nResolved Incidents,${data.resolved || 0}\nActive Volunteers,${data.volunteers || 0}`;
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relix-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      alert('Data exported successfully!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
-      {isAssignModalOpen && <AssignUnitModal onClose={() => setAssignModalOpen(false)} />}
+      {isAssignModalOpen && (
+        <AssignUnitModal 
+          onClose={() => setAssignModalOpen(false)} 
+          onSuccess={() => refetch()}
+        />
+      )}
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -104,12 +145,22 @@ export default function Dashboard() {
             <Activity size={14} />
             Refresh
           </button>
-          <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] flex items-center gap-2">
-            <Download size={14} />
-            Export Data
+          <button 
+            onClick={handleExport}
+            disabled={exporting}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] flex items-center gap-2 disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
+            {exporting ? 'Exporting...' : 'Export Data'}
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+          Dashboard data sync warning: {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-8 border-b border-white/5">

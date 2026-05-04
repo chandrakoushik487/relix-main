@@ -19,6 +19,8 @@ import {
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { db } from '@/lib/firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 const mapContainerStyle = {
   width: '100%',
@@ -121,25 +123,77 @@ export default function EmergencyMapPage() {
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeLayer, setActiveLayer] = useState('Heatmap');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
+  const { user, loading: authLoading } = useAuth();
 
   // Task 10: Firestore real-time listener
   useEffect(() => {
-    const q = query(collection(db, "issues"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const docs = [];
-      querySnapshot.forEach((doc) => {
-        docs.push({ id: doc.id, ...doc.data() });
+    if (authLoading) {
+      return () => {};
+    }
+
+    if (!user) {
+      setIncidents([]);
+      setError('User not authenticated');
+      return () => {};
+    }
+
+    try {
+      // Simple query without orderBy to avoid composite index errors
+      const q = query(collection(db, "issues"));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const docs = [];
+        querySnapshot.forEach((doc) => {
+          docs.push({ id: doc.id, ...doc.data() });
+        });
+        // Sort on client side
+        docs.sort((a, b) => {
+          const aTime = a.upload_date ? new Date(a.upload_date).getTime() : 0;
+          const bTime = b.upload_date ? new Date(b.upload_date).getTime() : 0;
+          return bTime - aTime;
+        });
+        setIncidents(docs);
+        setError(null);
+      }, (error) => {
+        const normalized = normalizeFirebaseError(error, 'Failed to sync incidents');
+        console.error("Error fetching incidents:", normalized.details, error);
+        setIncidents([]);
+        setError(normalized.details);
       });
-      setIncidents(docs);
-    });
-    return () => unsubscribe();
-  }, []);
+      return () => unsubscribe();
+    } catch (err) {
+      const normalized = normalizeFirebaseError(err, 'Failed to initialize incident listener');
+      console.error("Error setting up listener:", normalized.details, err);
+      setIncidents([]);
+      setError(normalized.details);
+    }
+  }, [authLoading, user]);
+
+  const filteredIncidents = incidents.filter(incident => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      incident.id?.toLowerCase().includes(q) ||
+      incident.area?.toLowerCase().includes(q) ||
+      incident.problem_type?.toLowerCase().includes(q)
+    );
+  });
+
+  const getMapTypeId = () => {
+    switch (activeLayer) {
+      case 'Satellite': return 'satellite';
+      case 'Terrain': return 'terrain';
+      case 'Traffic': return 'roadmap';
+      default: return 'roadmap';
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-64px)] w-full flex relative overflow-hidden bg-[#050505]">
       
       {/* 1. Left Control Panel */}
-      <div className={`h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col z-20 transition-all duration-500 shadow-2xl ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-[320px] opacity-100'}`}>
+      <div className={`h-full bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col z-20 transition-all duration-500 shadow-2xl ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[320px] opacity-100'}`}>
         <div className="p-6 border-b border-white/5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white font-display tracking-tight">Active Map</h2>
@@ -154,9 +208,16 @@ export default function EmergencyMapPage() {
             <input 
               type="text" 
               placeholder="Search coordinates or IDs..." 
-              className="w-full bg-[#030303] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#030303] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-all placeholder:text-zinc-700"
             />
           </div>
+          {error && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-bold text-red-300 uppercase tracking-wider">
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
@@ -190,11 +251,11 @@ export default function EmergencyMapPage() {
               <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Recent Alerts</span>
             </div>
             <div className="space-y-3">
-              {incidents.slice(0, 10).map(incident => (
+              {filteredIncidents.slice(0, 10).map(incident => (
                 <div 
                   key={incident.id} 
                   onClick={() => setSelectedIncident(incident)}
-                  className="p-3 rounded-xl bg-[#030303] border border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group"
+                  className={`p-3 rounded-xl bg-[#030303] border transition-all cursor-pointer group ${selectedIncident?.id === incident.id ? 'border-indigo-500/50 bg-indigo-500/5' : 'border-white/5 hover:border-indigo-500/30'}`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">{incident.id.slice(0, 8)}</span>
@@ -202,13 +263,16 @@ export default function EmergencyMapPage() {
                       {incident.createdAt?.seconds ? new Date(incident.createdAt.seconds * 1000).toLocaleTimeString() : 'Recent'}
                     </span>
                   </div>
-                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.issueType || 'Incident'}</h4>
+                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white mb-1">{incident.problem_type || 'Incident'}</h4>
                   <div className="flex items-center gap-2">
                     <MapPin size={10} className="text-zinc-600" />
-                    <span className="text-[10px] font-bold text-zinc-500">{incident.location || 'Unknown Region'}</span>
+                    <span className="text-[10px] font-bold text-zinc-500 truncate">{incident.area || 'Unknown Region'}</span>
                   </div>
                 </div>
               ))}
+              {filteredIncidents.length === 0 && (
+                <p className="text-[10px] text-center text-zinc-600 py-4 uppercase tracking-widest font-bold">No matches found</p>
+              )}
             </div>
           </div>
         </div>
@@ -233,6 +297,7 @@ export default function EmergencyMapPage() {
               mapContainerStyle={mapContainerStyle}
               center={center}
               zoom={12}
+              mapTypeId={getMapTypeId()}
               options={{
                 styles: darkMapStyle,
                 disableDefaultUI: true,
@@ -242,11 +307,11 @@ export default function EmergencyMapPage() {
               {incidents.map((incident) => (
                 <Marker
                   key={incident.id}
-                  position={{ lat: incident.lat || 40.71, lng: incident.lng || -74.00 }}
+                  position={{ lat: incident.latitude || 40.71, lng: incident.longitude || -74.00 }}
                   onClick={() => setSelectedIncident(incident)}
                   icon={{
                     path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-                    fillColor: incident.urgency === 'Critical' ? '#ef4444' : '#f59e0b',
+                    fillColor: incident.urgency_level === 'Critical' || incident.urgency_level === 'High' ? '#ef4444' : '#f59e0b',
                     fillOpacity: 1,
                     strokeWeight: 1,
                     strokeColor: '#ffffff',
@@ -278,13 +343,13 @@ export default function EmergencyMapPage() {
                 <div className="space-y-4 relative">
                   <div className="flex items-center gap-3">
                     <span className={`text-[10px] uppercase tracking-[0.2em] font-bold px-2 py-1 rounded-md border ${
-                      selectedIncident.urgency === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      selectedIncident.urgency_level === 'Critical' || selectedIncident.urgency_level === 'High' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     }`}>
-                      {selectedIncident.urgency || 'Medium'}
+                      {selectedIncident.urgency_level || 'Medium'}
                     </span>
-                    <span className="text-xs font-bold text-zinc-500 tracking-widest">{selectedIncident.location}</span>
+                    <span className="text-xs font-bold text-zinc-500 tracking-widest">{selectedIncident.area}</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-white font-display leading-tight">{selectedIncident.issueType}</h3>
+                  <h3 className="text-2xl font-bold text-white font-display leading-tight">{selectedIncident.problem_type}</h3>
                   <div className="flex items-center gap-2 text-zinc-500">
                     <Clock size={14} />
                     <span className="text-xs font-medium">Reported {selectedIncident.createdAt?.seconds ? new Date(selectedIncident.createdAt.seconds * 1000).toLocaleTimeString() : 'Recently'}</span>
@@ -295,7 +360,7 @@ export default function EmergencyMapPage() {
               <div className="p-8 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Context & Intel</h4>
-                  <p className="text-sm text-zinc-300 leading-relaxed font-medium">{selectedIncident.description}</p>
+                  <p className="text-sm text-zinc-300 leading-relaxed font-medium">{selectedIncident.issue_description}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">

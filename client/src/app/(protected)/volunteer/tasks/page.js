@@ -13,7 +13,7 @@ import {
   Phone
 } from 'lucide-react';
 
-const TaskCard = ({ title, location, priority, status, time, taskId, description }) => (
+const TaskCard = ({ title, location, priority, status, time, taskId, description, onAccept, onDecline, onComplete, onContact, onNavigate }) => (
   <div className="glass-card p-6 border-white/5 hover:border-indigo-500/30 transition-all">
     <div className="flex items-start justify-between mb-4">
       <div className="flex items-center gap-3">
@@ -53,27 +53,27 @@ const TaskCard = ({ title, location, priority, status, time, taskId, description
       <div className="flex gap-2">
         {status === 'Pending' && (
           <>
-            <button className="px-3 py-1.5 text-[11px] font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-all border border-red-500/20">
+            <button className="px-3 py-1.5 text-[11px] font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-all border border-red-500/20" onClick={() => onDecline && onDecline(taskId)}>
               Decline
             </button>
-            <button className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all">
+            <button className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all" onClick={() => onAccept && onAccept(taskId)}>
               Accept
             </button>
           </>
         )}
         {status === 'In Progress' && (
           <>
-            <button className="px-3 py-1.5 text-[11px] font-bold text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-white/10 flex items-center gap-1">
+            <button className="px-3 py-1.5 text-[11px] font-bold text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-white/10 flex items-center gap-1" onClick={() => onContact && onContact(taskId)}>
               <Phone size={10} />
               Contact NGO
             </button>
-            <button className="px-3 py-1.5 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-all flex items-center gap-1">
+            <button className="px-3 py-1.5 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-all flex items-center gap-1" onClick={() => onComplete && onComplete(taskId)}>
               <CheckCircle2 size={10} />
               Mark Complete
             </button>
           </>
         )}
-        <button className="px-3 py-1.5 text-[11px] font-bold text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-white/10 flex items-center gap-1">
+        <button className="px-3 py-1.5 text-[11px] font-bold text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-all border border-white/10 flex items-center gap-1" onClick={() => onNavigate && onNavigate(taskId)}>
           <Navigation size={10} />
           Navigate
         </button>
@@ -125,6 +125,26 @@ export default function VolunteerTasks() {
     active: tasks.filter(t => t.status === 'In Progress').length,
     pending: tasks.filter(t => t.status === 'Pending').length,
     completed: tasks.filter(t => t.status === 'Completed').length
+  };
+
+  const handleAccept = (taskId) => {
+    alert(`Accepted task ${taskId}`);
+  };
+
+  const handleDecline = (taskId) => {
+    alert(`Declined task ${taskId}`);
+  };
+
+  const handleComplete = (taskId) => {
+    alert(`Completed task ${taskId}`);
+  };
+
+  const handleContact = (taskId) => {
+    alert(`Contact NGO for task ${taskId}`);
+  };
+
+  const handleNavigate = (taskId) => {
+    alert(`Navigate to task ${taskId} location`);
   };
 
   return (
@@ -197,7 +217,15 @@ export default function VolunteerTasks() {
       {/* Task List */}
       <div className="space-y-4">
         {filteredTasks.map(task => (
-          <TaskCard key={task.id} {...task} />
+          <TaskCard 
+            key={task.id} 
+            {...task} 
+            onAccept={handleAccept}
+            onDecline={handleDecline}
+            onComplete={handleComplete}
+            onContact={handleContact}
+            onNavigate={handleNavigate}
+          />
         ))}
       </div>
 

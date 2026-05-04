@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
+import {
   LayoutDashboard, 
   BarChart3, 
   Map as MapIcon, 
@@ -14,9 +14,11 @@ import {
   User,
   Settings,
   LogOut,
-  Activity
+  Activity,
+  Calendar
 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import CreateTicketModal from '../modals/CreateTicketModal';
 
 const SidebarItem = ({ icon: Icon, label, href, active, onClick }) => (
@@ -36,10 +38,16 @@ const SidebarItem = ({ icon: Icon, label, href, active, onClick }) => (
 
 export default function Sidebar({ userRole = 'NGO Staff' }) {
   const pathname = usePathname();
+  const { signOut } = useAuth();
   const [isTicketModalOpen, setTicketModalOpen] = useState(false);
 
-  const handleSignOut = () => {
-    auth.signOut();
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // Redirect will be handled by auth state change listener in protected layout or AuthContext
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const isNGO = userRole === 'NGO Staff';
@@ -132,23 +140,18 @@ export default function Sidebar({ userRole = 'NGO Staff' }) {
 
         <div className="pt-6 border-t border-[#1A1A1A] mt-auto space-y-1">
           <SidebarItem
-            icon={User}
-            label="Profile"
-            href="/profile"
-            active={pathname === '/profile'}
-          />
-          <SidebarItem
             icon={Settings}
             label="Settings"
             href="/settings"
             active={pathname === '/settings'}
           />
           <button
+            type="button"
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-400/5 transition-all"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-400/5 transition-all text-sm font-medium"
           >
             <LogOut size={18} />
-            <span className="font-medium text-sm">Logout</span>
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>

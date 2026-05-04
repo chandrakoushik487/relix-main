@@ -20,6 +20,8 @@ import {
   Search,
   ArrowLeft
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { normalizeFirebaseError } from '@/lib/firebaseError';
 
 export default function DataLakePage() {
   const [step, setStep] = useState(1);
@@ -36,6 +38,7 @@ export default function DataLakePage() {
   ]);
 
   const fileInputRef = useRef(null);
+  const { user, loading: authLoading } = useAuth();
 
   // --- CSV Processing Logic ---
   
@@ -114,6 +117,21 @@ export default function DataLakePage() {
   };
 
   const handleFinalUpload = async () => {
+    if (authLoading) {
+      setUploadStatus({ type: 'error', message: 'Authentication is still loading. Please try again.' });
+      return;
+    }
+
+    if (!user) {
+      setUploadStatus({ type: 'error', message: 'You must be signed in to upload data to Firestore.' });
+      return;
+    }
+
+    if (!mappedRows.length) {
+      setUploadStatus({ type: 'error', message: 'No mapped rows available for upload.' });
+      return;
+    }
+
     setIsUploading(true);
     setUploadStatus(null);
 
@@ -147,7 +165,8 @@ export default function DataLakePage() {
       setUploadStatus({ type: 'success', message: `Successfully ingested ${mappedRows.length} records!` });
       setTimeout(() => setUploadStatus(null), 5000);
     } catch (err) {
-      setUploadStatus({ type: 'error', message: err.message });
+      const normalized = normalizeFirebaseError(err, 'Bulk upload failed');
+      setUploadStatus({ type: 'error', message: normalized.details });
     } finally {
       setIsUploading(false);
     }
@@ -346,7 +365,7 @@ export default function DataLakePage() {
               </button>
               <button 
                 onClick={handleFinalUpload} 
-                disabled={isUploading}
+                disabled={isUploading || authLoading || !user}
                 className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(99,102,241,0.2)] disabled:opacity-50"
               >
                 {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Database size={18} />}

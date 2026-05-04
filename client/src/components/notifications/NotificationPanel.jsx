@@ -27,7 +27,7 @@ export default function NotificationPanel({ onClose }) {
     <div ref={panelRef} className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-hover border border-slate-200 overflow-hidden z-50 animate-fade-in-up origin-top-right">
       <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
         <h4 className="font-extrabold text-sidebar text-sm">Notifications</h4>
-        <button className="text-xs font-bold text-primary hover:underline">Mark all as read</button>
+        <button className="text-xs font-bold text-primary hover:underline" onClick={() => alert('Marked all notifications as read')}>Mark all as read</button>
       </div>
       
       <div className="max-h-80 overflow-y-auto">

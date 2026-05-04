@@ -62,7 +62,7 @@ During natural disasters and civic emergencies, **field-level data** — handwri
 - **OCR Processing** — Google Vision API (primary) + Tesseract (fallback) for handwritten text
 - **LLM Structuring** — Converts messy OCR output into structured fields (location, urgency, type)
 - **Confidence scoring** — Field-level accuracy indicators (green/orange/red)
-- **Graceful degradation** — Falls back silently when APIs are unavailable
+- **Controlled fallback** — Uses fallback datasets while surfacing explicit sync errors in UI
 
 ### 📈 Social Vulnerability Index (SVI)
 - Weighted scoring: urgency (60%) + scale (40%)
@@ -105,6 +105,14 @@ During natural disasters and civic emergencies, **field-level data** — handwri
 └──────────────────────────────────────────────────────────────┘
 ```
 
+### Firebase Runtime Behavior (Updated)
+
+- **Singleton initialization** on both client and server to prevent duplicate Firebase app instances
+- **Auth-gated Firestore listeners** for protected task/map flows
+- **Normalized Firebase error handling** using `client/src/lib/firebaseError.js`
+- **Fail-loud diagnostics** in dashboard, incident feed, emergency map, login profile sync, and data-lake upload flows
+- **Rules-aligned task updates** (volunteer updates include `assignedTo` uid for Firestore rule checks)
+
 ---
 
 ## <a id="tech-stack"></a>⚙️ Tech Stack
@@ -118,7 +126,7 @@ During natural disasters and civic emergencies, **field-level data** — handwri
 | Zustand | Lightweight state management |
 | TanStack Query | Server state & caching |
 | Recharts | Data visualizations |
-| Mapbox GL JS | Interactive maps |
+| @react-google-maps/api | Interactive maps |
 | Lucide React | Icon system |
 | React Hook Form + Zod | Form handling & validation |
 
@@ -177,11 +185,21 @@ cp .env.example .env
 ### Development
 
 ```bash
-# Start the frontend dev server
+# Start full stack (client + server)
+npm run dev
+
+# Or run frontend only
 cd client
 npm run dev
 # → http://localhost:3500
 ```
+
+### Environment Notes
+
+- Frontend Firebase config uses `NEXT_PUBLIC_FIREBASE_*` values in `client/.env.local`.
+- Server Firebase Admin uses `FIREBASE_CREDENTIALS_PATH` / `GOOGLE_APPLICATION_CREDENTIALS` in `server/.env`.
+- Current Firestore rules require authenticated access and enforce field-level constraints for `issues` and `tasks`.
+- If queries need composite indexes, deploy `firestore.indexes.json` after creating missing indexes from Firebase console prompts.
 
 ### Production Build & Deploy
 
@@ -230,6 +248,7 @@ relix-main/
 
 - **Authentication** — Firebase Auth with email/password
 - **Authorization** — Firestore Security Rules enforce role-based access
+- **Rules-aware writes** — Task update permissions depend on admin claim or `assignedTo == request.auth.uid`
 - **Input validation** — Zod schemas on client and server
 - **XSS prevention** — HTML/script tag stripping on all inputs
 - **Rate limiting** — Express rate-limit on all API endpoints

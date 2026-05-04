@@ -15,17 +15,19 @@ router.get('/', async (req, res) => {
     const totalSnapshot = await issuesRef.count().get();
     const total = totalSnapshot.data().count;
 
-    // Fix #2a: lowercase 'high' (was 'High') - matches stored data
-    const criticalSnapshot = await issuesRef.where('urgency_level', '==', 'high').count().get();
+    // Handle both lowercase and capitalized enum values for backward compatibility
+    const criticalSnapshot = await issuesRef.where('urgency_level', 'in', ['high', 'High', 'Critical']).count().get();
     const critical = criticalSnapshot.data().count;
 
-    // Fix #2b: lowercase 'assigned' (was 'Assigned') - matches stored data
-    const assignedSnapshot = await issuesRef.where('status', '==', 'assigned').count().get();
+    const assignedSnapshot = await issuesRef.where('status', 'in', ['assigned', 'Assigned']).count().get();
     const assigned = assignedSnapshot.data().count;
 
-    // Fix #2c: lowercase 'pending' (was 'Pending') - matches stored data
-    const unassignedSnapshot = await issuesRef.where('status', '==', 'pending').count().get();
+    const unassignedSnapshot = await issuesRef.where('status', 'in', ['pending', 'Pending']).count().get();
     const unassigned = unassignedSnapshot.data().count;
+
+    // Get active volunteers count
+    const volunteersSnapshot = await db.collection('users').where('role', '==', 'Volunteer').count().get();
+    const volunteers = volunteersSnapshot.data().count;
 
     // Get total SVI score sum (using SVI as proxy for people affected)
     const sviSnapshot = await issuesRef.orderBy('svi_score').get(); // Only docs with svi_score exist
@@ -42,7 +44,8 @@ router.get('/', async (req, res) => {
         critical_issues: critical || 0,
         total_affected: Math.round(totalAffectedCount * 100) / 100,
         assigned_operations: assigned || 0,
-        pending_operations: unassigned || 0
+        pending_operations: unassigned || 0,
+        active_volunteers: volunteers || 0
       }
     });
 
