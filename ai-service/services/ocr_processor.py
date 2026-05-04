@@ -1,20 +1,29 @@
 """
-OCR Processor Service using Google AI Studio (Gemini Vision API)
-Processes civic issue images and extracts structured JSON data
+OCR Processor Service — Google Gemini Vision API
+=================================================
+Processes civic issue images and extracts structured JSON data.
+
+FALLBACK BEHAVIOUR (local dev)
+-------------------------------
+If GOOGLE_AI_STUDIO_API_KEY is not set OR the Gemini API call fails,
+process_image() and process_ocr_text() both return a mock/fail-safe
+result (success=True, fail_safe_triggered=True) instead of crashing.
+This keeps every other part of the pipeline testable without a live key.
 """
 
 import base64
 import json
 import logging
+import os
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
-import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
 
-# Load the civic OCR prompt template
+# ── Prompt template ───────────────────────────────────────────────────────────
 CIVIC_PROMPT_TEMPLATE = """# CIVIC ISSUE OCR → JSON ENGINE
 # Schema Version: 2.0 | Production-Safe | Firestore-Ready
 
@@ -129,32 +138,6 @@ Rules:
 4. Record ISO 639-1 language code in _meta.source_language
 5. Set _meta.translation_applied = true if translation was performed
 
-## VALIDATION CHECKLIST
-
-- [ ] schema_version === "2.0"
-- [ ] issue_id is valid UUID v4
-- [ ] All top-level fields present (no missing keys)
-- [ ] All location_raw sub-fields present
-- [ ] All _meta sub-fields present
-- [ ] No field has wrong type
-- [ ] status === "pending"
-- [ ] severity_score is integer 1–10 or null
-- [ ] urgency_level is consistent with severity_score mapping
-- [ ] repeat_complaint is boolean or null
-- [ ] multi_issue_detected is boolean
-- [ ] issue_description ≤ 280 characters (if not null)
-- [ ] pincode is exactly 6 numeric digits or null
-- [ ] secondary_problem_type ≠ problem_type (if not null)
-- [ ] JSON is syntactically valid
-
-## SELF-CORRECTION LOOP
-
-If validation fails:
-1. Identify failing fields
-2. Correct them without modifying passing fields
-3. Re-validate
-Maximum 2 correction passes. If still invalid → trigger FAIL-SAFE.
-
 ## FAIL-SAFE OUTPUT
 
 Trigger only when 2 correction passes have failed. Return exactly:
@@ -164,11 +147,7 @@ Trigger only when 2 correction passes have failed. Return exactly:
   "issue_id": "<generated-uuid-v4>",
   "area": null,
   "location_raw": {
-    "street": null,
-    "landmark": null,
-    "locality": null,
-    "city": null,
-    "state": null
+    "street": null, "landmark": null, "locality": null, "city": null, "state": null
   },
   "issue_description": null,
   "latitude": null,
@@ -188,7 +167,7 @@ Trigger only when 2 correction passes have failed. Return exactly:
     "source_language": "en",
     "extraction_confidence": "low",
     "fields_extracted": [],
-    "fields_nulled": ["area", "issue_description", "latitude", "longitude", "pincode", "incident_date_estimate", "repeat_complaint"],
+    "fields_nulled": ["area","issue_description","latitude","longitude","pincode","incident_date_estimate","repeat_complaint"],
     "translation_applied": false,
     "fail_safe_triggered": true,
     "processing_notes": "Fail-safe triggered after 2 failed validation correction attempts."
@@ -203,175 +182,207 @@ OCR_TEXT:
 """
 
 
+# ── Mock / fail-safe result ───────────────────────────────────────────────────
+def _mock_result(reason: str) -> dict:
+    """Return a structurally valid fail-safe result for local dev / API outages."""
+    current_date = datetime.utcnow().strftime("%Y-%m-%d")
+    return {
+        "schema_version": "2.0",
+        "issue_id": str(uuid.uuid4()),
+        "area": None,
+        "location_raw": {
+            "street": None, "landmark": None,
+            "locality": None, "city": None, "state": None,
+        },
+        "issue_description": None,
+        "latitude": None,
+        "longitude": None,
+        "pincode": None,
+        "problem_type": "other",
+        "secondary_problem_type": None,
+        "multi_issue_detected": False,
+        "status": "pending",
+        "severity_score": None,
+        "upload_date": current_date,
+        "incident_date_estimate": None,
+        "urgency_level": None,
+        "repeat_complaint": None,
+        "_meta": {
+            "ocr_quality": "garbled",
+            "source_language": "en",
+            "extraction_confidence": "low",
+            "fields_extracted": [],
+            "fields_nulled": [
+                "area", "issue_description", "latitude", "longitude",
+                "pincode", "incident_date_estimate", "repeat_complaint",
+            ],
+            "translation_applied": False,
+            "fail_safe_triggered": True,
+            "processing_notes": f"Local fallback triggered: {reason}",
+        },
+    }
+
+
+# ── OCRProcessor ──────────────────────────────────────────────────────────────
 class OCRProcessor:
-    """Processes civic issue images using Google Gemini Vision API."""
+    """Processes civic issue images using Google Gemini Vision API.
+
+    Falls back to a mock result (not a crash) if:
+    - GOOGLE_AI_STUDIO_API_KEY is not set
+    - google-generativeai is not installed
+    - The Gemini API returns an error
+    """
 
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize OCR processor with Google AI API key."""
-        if api_key:
-            genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        self._ready = False
+        self.model = None
 
+        # Allow passing key explicitly OR reading from env at construction time
+        key = api_key or os.getenv("GOOGLE_AI_STUDIO_API_KEY", "").strip()
+
+        if not key:
+            logger.warning(
+                "[OCRProcessor] GOOGLE_AI_STUDIO_API_KEY is not set. "
+                "OCR calls will return mock/fail-safe results. "
+                "Add the key to ai-service/.env to enable real processing."
+            )
+            return
+
+        try:
+            import google.generativeai as genai
+
+            genai.configure(api_key=key)
+            self.model = genai.GenerativeModel("gemini-1.5-flash")
+            self._ready = True
+            logger.info("[OCRProcessor] Gemini Vision API initialized ✓")
+        except ImportError:
+            logger.warning(
+                "[OCRProcessor] google-generativeai not installed. "
+                "Run: pip install google-generativeai"
+            )
+        except Exception as e:
+            logger.error(f"[OCRProcessor] Failed to configure Gemini: {e}", exc_info=True)
+
+    # ── process_image ─────────────────────────────────────────────────────────
     def process_image(self, image_path: str) -> Tuple[dict, bool]:
         """
-        Process an image and extract structured civic issue data.
-        
-        Args:
-            image_path: Path to image file or GCS URI (gs://...)
-            
+        Process a local image file with Gemini Vision.
+
         Returns:
-            Tuple of (structured_data, success_flag)
+            (structured_data, success_flag)
+            On any failure returns a mock fail-safe dict with success=True
+            so the rest of the pipeline keeps running.
         """
+        if not self._ready:
+            logger.warning("[OCRProcessor] API not ready — returning mock result.")
+            return _mock_result("Gemini API not configured"), True
+
         try:
-            # Read and encode image
-            if image_path.startswith("gs://"):
-                logger.warning(
-                    "GCS URI provided; ensure image can be fetched. Using direct URL."
-                )
-                image_data = None
-                image_url = image_path
-            else:
-                with open(image_path, "rb") as f:
-                    image_data = base64.standard_b64encode(f.read()).decode("utf-8")
-                    image_url = None
-
-            # Determine media type from file extension
-            ext = Path(image_path).suffix.lower() if not image_path.startswith("gs://") else ".jpg"
-            media_type_map = {
-                ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg",
-                ".png": "image/png",
-                ".gif": "image/gif",
-                ".webp": "image/webp",
-            }
-            media_type = media_type_map.get(ext, "image/jpeg")
-
-            # Get current date
             current_date = datetime.utcnow().strftime("%Y-%m-%d")
-
-            # Prepare system prompt with current date injected
             system_prompt = CIVIC_PROMPT_TEMPLATE.replace("{CURRENT_DATE}", current_date)
 
-            # Build message content
-            content = []
-
-            if image_data:
-                # Use base64 encoded image
-                content.append(
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": media_type,
-                            "data": image_data,
-                        },
-                    }
-                )
-            elif image_url:
-                # Use direct URL (GCS)
-                content.append(
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "url",
-                            "url": image_url,
-                        },
-                    }
-                )
-
-            content_list = [system_prompt]
-            
-            if image_data:
-                # Use base64 encoded image with MIME type
-                from PIL import Image
-                import io
-                
-                image_binary = base64.standard_b64decode(image_data)
-                image_obj = Image.open(io.BytesIO(image_binary))
-                
-                content_list.extend([
+            if image_path.startswith("gs://"):
+                # GCS URI — pass as text reference (Vision API handles fetch)
+                content_list = [
+                    system_prompt,
                     "Extract the civic issue data from this image and return ONLY the JSON object.",
-                    image_obj
-                ])
-                
-            elif image_url:
-                # For GCS URIs, include the URL
-                content_list.extend([
-                    "Extract the civic issue data from this image and return ONLY the JSON object.",
-                    {"mime_type": media_type, "data": image_url}
-                ])
+                    {"mime_type": "image/jpeg", "data": image_path},
+                ]
+            else:
+                # Local file — encode to base64 then PIL
+                try:
+                    from PIL import Image
+                    import io
 
-            # Call Gemini Vision API
+                    with open(image_path, "rb") as f:
+                        raw = f.read()
+
+                    image_obj = Image.open(io.BytesIO(raw))
+                    content_list = [
+                        system_prompt,
+                        "Extract the civic issue data from this image and return ONLY the JSON object.",
+                        image_obj,
+                    ]
+                except ImportError:
+                    logger.warning(
+                        "[OCRProcessor] Pillow not installed. Falling back to base64 inline. "
+                        "Run: pip install Pillow"
+                    )
+                    ext = Path(image_path).suffix.lower()
+                    media_map = {
+                        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                        ".png": "image/png", ".gif": "image/gif",
+                        ".webp": "image/webp",
+                    }
+                    mime = media_map.get(ext, "image/jpeg")
+                    with open(image_path, "rb") as f:
+                        b64 = base64.standard_b64encode(f.read()).decode("utf-8")
+                    content_list = [
+                        system_prompt,
+                        "Extract the civic issue data from this image and return ONLY the JSON object.",
+                        {"mime_type": mime, "data": b64},
+                    ]
+
             response = self.model.generate_content(content_list)
-
-            # Extract response text
-            response_text = response.text if response else ""
-
-            # Parse JSON response
-            try:
-                # Try to extract JSON from response
-                json_start = response_text.find("{")
-                json_end = response_text.rfind("}") + 1
-                if json_start >= 0 and json_end > json_start:
-                    json_str = response_text[json_start:json_end]
-                    structured_data = json.loads(json_str)
-                    logger.info(f"Successfully extracted civic issue data from image")
-                    return structured_data, True
-                else:
-                    logger.error("No JSON found in Gemini response")
-                    logger.debug(f"Response was: {response_text[:500]}")
-                    return {}, False
-
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON from Gemini response: {e}")
-                logger.debug(f"Response was: {response_text[:500]}")
-                return {}, False
+            return self._parse_response(response)
 
         except Exception as e:
-            logger.error(f"Gemini API error: {e}")
-            return {}, False
-        except Exception as e:
-            logger.error(f"Unexpected error processing image: {e}")
-            return {}, False
+            logger.error(f"[OCRProcessor] process_image error: {e}", exc_info=True)
+            return _mock_result(str(e)), True
 
+    # ── process_ocr_text ──────────────────────────────────────────────────────
     def process_ocr_text(self, ocr_text: str) -> Tuple[dict, bool]:
         """
-        Process raw OCR text (from Google Vision or similar).
-        
-        Args:
-            ocr_text: Raw OCR-extracted text from an image
-            
+        Structure raw OCR text using Gemini.
+
         Returns:
-            Tuple of (structured_data, success_flag)
+            (structured_data, success_flag)
+            Falls back to mock on any error.
         """
+        if not self._ready:
+            logger.warning("[OCRProcessor] API not ready — returning mock result.")
+            return _mock_result("Gemini API not configured"), True
+
         try:
             current_date = datetime.utcnow().strftime("%Y-%m-%d")
             system_prompt = CIVIC_PROMPT_TEMPLATE.replace("{CURRENT_DATE}", current_date)
-            
+
             response = self.model.generate_content([
                 system_prompt,
-                f"Extract civic issue data from this OCR text and return ONLY the JSON object:\n\n{ocr_text}"
+                f"Extract civic issue data from this OCR text and return ONLY the JSON object:\n\n{ocr_text}",
             ])
 
-            response_text = response.text if response else ""
-
-            # Parse JSON response
-            try:
-                json_start = response_text.find("{")
-                json_end = response_text.rfind("}") + 1
-                if json_start >= 0 and json_end > json_start:
-                    json_str = response_text[json_start:json_end]
-                    structured_data = json.loads(json_str)
-                    logger.info("Successfully structured OCR text to JSON")
-                    return structured_data, True
-                else:
-                    logger.error("No JSON found in Gemini response")
-                    return {}, False
-
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON: {e}")
-                return {}, False
+            return self._parse_response(response)
 
         except Exception as e:
-            logger.error(f"Error processing OCR text: {e}")
-            return {}, False
+            logger.error(f"[OCRProcessor] process_ocr_text error: {e}", exc_info=True)
+            return _mock_result(str(e)), True
+
+    # ── _parse_response ───────────────────────────────────────────────────────
+    def _parse_response(self, response) -> Tuple[dict, bool]:
+        """Extract and parse JSON from a Gemini GenerateContentResponse."""
+        try:
+            response_text = response.text if response else ""
+        except Exception:
+            response_text = ""
+
+        if not response_text:
+            logger.error("[OCRProcessor] Empty response from Gemini.")
+            return _mock_result("Empty API response"), True
+
+        json_start = response_text.find("{")
+        json_end = response_text.rfind("}") + 1
+
+        if json_start < 0 or json_end <= json_start:
+            logger.error("[OCRProcessor] No JSON block found in Gemini response.")
+            logger.debug(f"Response preview: {response_text[:300]}")
+            return _mock_result("No JSON in response"), True
+
+        try:
+            structured_data = json.loads(response_text[json_start:json_end])
+            logger.info("[OCRProcessor] Successfully extracted structured JSON ✓")
+            return structured_data, True
+        except json.JSONDecodeError as e:
+            logger.error(f"[OCRProcessor] JSON parse error: {e}")
+            logger.debug(f"Raw JSON string: {response_text[json_start:json_end][:300]}")
+            return _mock_result(f"JSON parse error: {e}"), True
