@@ -78,3 +78,4 @@ skills-lock.json
 # Secrets / Credentials
 # =====================
 server/config/firebase-adminsdk.json
+docs/internal/GRAPH_REPORT.md
