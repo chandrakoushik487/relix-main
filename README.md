@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="client/public/relix_logo-removebg-preview.svg" alt="RELIX Logo" width="240" height="240" />
+﻿<p align="center">
+  <img src="client/public/relix_logo-removebg-preview.svg" alt="RELIX Logo" width="220" />
 </p>
 
 <h1 align="center">RELIX — Relief Intelligence Exchange</h1>
@@ -17,258 +17,172 @@
 </p>
 
 <p align="center">
-  <em>Google Developer Groups — Solution Challenge 2026</em>
+  <em>Google Developer Groups Solution Challenge 2026</em>
 </p>
 
 ---
 
-## 🌍 Problem Statement
+## Overview
 
-During natural disasters and civic emergencies, **field-level data** — handwritten complaint forms, paper registries, and manual surveys — remains trapped in analog format. NGOs and relief agencies lack real-time visibility into which communities need help most, leading to:
-
-- **Delayed response** — hours lost manually digitizing reports
-- **Misallocated resources** — volunteers dispatched without priority data
-- **Invisible communities** — vulnerable populations with no digital footprint go unserved
-
-## 💡 Our Solution
-
-**RELIX** bridges the gap between offline field reports and intelligent digital coordination:
-
-1. **Upload** — NGO workers photograph handwritten forms and upload them
-2. **AI Extraction** — OCR + LLM pipeline extracts structured data (location, urgency, issue type)
-3. **Prioritize** — A Social Vulnerability Index (SVI) scores each issue by urgency and scale
-4. **Coordinate** — Dashboard maps hotspots, assigns volunteers, and tracks resolution in real-time
-
-## 🎯 UN Sustainable Development Goals
-
-| SDG | Alignment |
-|-----|-----------|
-| **SDG 3** — Good Health & Well-being | Health issue tracking, volunteer dispatch for medical crises |
-| **SDG 6** — Clean Water & Sanitation | Water contamination detection and priority response |
-| **SDG 11** — Sustainable Cities & Communities | Civic issue mapping, infrastructure damage tracking |
-| **SDG 17** — Partnerships for the Goals | Connecting NGOs, volunteers, and communities on one platform |
+RELIX is an AI-powered platform for NGO workers, relief coordinators, volunteers, and civic tech teams. It converts handwritten field reports into prioritized digital intelligence so aid can reach the communities that need it most.
 
 ---
 
-## <a id="features"></a>✨ Key Features
+## Problem
 
-### 📊 Real-Time Dashboard
-- **4 KPI cards** — Total reports, critical issues, people affected, active NGOs
-- **Interactive map** — Color-coded markers by issue type, clustered view, severity-based sizing
-- **AI Insights panel** — Auto-generated hotspot detection, surge alerts, volunteer gap analysis
-- **Charts** — Issue distribution by type, trend lines over time
+During emergencies, critical field data is still captured on paper. That means:
 
-### 🤖 AI-Powered Data Pipeline
-- **OCR Processing** — Google Vision API (primary) + Tesseract (fallback) for handwritten text
-- **LLM Structuring** — Converts messy OCR output into structured fields (location, urgency, type)
-- **Confidence scoring** — Field-level accuracy indicators (green/orange/red)
-- **Controlled fallback** — Uses fallback datasets while surfacing explicit sync errors in UI
+- **Delayed action** — valuable time is lost while data is manually digitized.
+- **Poor resource allocation** — responders lack clear priority and location context.
+- **Invisible communities** — vulnerable populations remain unserved without a digital presence.
 
-### 📈 Social Vulnerability Index (SVI)
-- Weighted scoring: urgency (60%) + scale (40%)
-- Location clustering with density multipliers
-- 4-tier classification: Critical → High → Medium → Low
-- Auto-recalculated on every update
+---
 
-### 🤝 Volunteer Matching
-- Proximity-based scoring (Haversine distance)
+## Solution
+
+RELIX turns analog reports into actionable response workflows:
+
+1. **Upload** — hand-filled forms are captured by NGO workers.
+2. **Extract** — OCR and LLM processing structure the data.
+3. **Prioritize** — SVI scoring ranks incidents by urgency and scale.
+4. **Coordinate** — volunteers and response teams are aligned in real time.
+
+---
+
+## <a id="features"></a>Features
+
+### Real-Time Dashboard
+- Live incident tracking with severity and location context
+- AI hotspot detection and surge analysis
+- Volunteer capacity and gap monitoring
+
+### AI-Powered Data Pipeline
+- Google Vision OCR primary processing
+- Tesseract fallback for handwritten forms
+- Claude API for structured data extraction
+- Field-level confidence scoring
+
+### Social Vulnerability Index (SVI)
+- Urgency weighted at 60% and scale at 40%
+- Four-tier risk classification: Critical, High, Medium, Low
+- Auto recalculation on every report update
+
+### Volunteer Dispatch
+- Proximity-aware matching using Haversine distance
 - Skill matching and workload balancing
-- Auto-assign for critical issues, admin-confirm for lower priority
-- Notification via email
-
-### 🗺️ Emergency Map
-- Live geographic view of all reported issues
-- Filter by issue type, urgency, status, and date range
-- Cluster view for dense areas
-
-### 📋 Incident Feed & Data Lake
-- Chronological feed of all incoming reports
-- Bulk data exploration and CSV export
+- Critical cases auto-assigned, lower priority reviewed by admins
+- Notification support for assignment alerts
 
 ---
 
-## <a id="architecture"></a>🏗️ Architecture
+## <a id="architecture"></a>Architecture
+
+RELIX is built with a modular architecture separating the frontend, API backend, and AI service layers.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                        RELIX Platform                        │
 ├──────────────┬───────────────────────┬───────────────────────┤
 │   Frontend   │    Backend (API)      │    AI Service         │
-│   Next.js    │    Node.js/Express    │    FastAPI + Claude    │
-│   React 19   │    Firebase Auth      │    Google Vision OCR   │
-│   Mapbox GL  │    Firestore DB       │    Tesseract fallback  │
-│   Recharts   │    SVI Engine         │    LLM Structuring     │
+│   Next.js    │    Node.js/Express    │    FastAPI + Claude   │
+│   React 19   │    Firebase Auth      │    Google Vision OCR  │
+│   Mapbox GL  │    Firestore DB       │    Tesseract fallback │
+│   Recharts   │    SVI Engine         │    LLM Structuring    │
 │   Zustand    │    Volunteer Matcher  │                       │
 ├──────────────┴───────────────────────┴───────────────────────┤
-│                    Firebase Platform                          │
-│       Hosting  •  Authentication  •  Cloud Firestore          │
+│                    Firebase Platform                       │
+│       Hosting • Authentication • Cloud Firestore            │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Firebase Runtime Behavior (Updated)
-
-- **Singleton initialization** on both client and server to prevent duplicate Firebase app instances
-- **Auth-gated Firestore listeners** for protected task/map flows
-- **Normalized Firebase error handling** using `client/src/lib/firebaseError.js`
-- **Fail-loud diagnostics** in dashboard, incident feed, emergency map, login profile sync, and data-lake upload flows
-- **Rules-aligned task updates** (volunteer updates include `assignedTo` uid for Firestore rule checks)
-
 ---
 
-## <a id="tech-stack"></a>⚙️ Tech Stack
+## <a id="tech-stack"></a>Tech Stack
 
 ### Frontend
-| Technology | Purpose |
-|-----------|---------|
-| Next.js 16 | React framework with static export |
-| React 19 | UI component library |
-| Tailwind CSS 4 | Utility-first styling |
-| Zustand | Lightweight state management |
-| TanStack Query | Server state & caching |
-| Recharts | Data visualizations |
-| @react-google-maps/api | Interactive maps |
-| Lucide React | Icon system |
-| React Hook Form + Zod | Form handling & validation |
+- Next.js 16
+- React 19
+- Tailwind CSS 4
+- Zustand
+- Recharts
 
 ### Backend
-| Technology | Purpose |
-|-----------|---------|
-| Node.js + Express | REST API server |
-| Firebase Auth | User authentication |
-| Cloud Firestore | Real-time NoSQL database |
-| Socket.io | WebSocket real-time updates |
+- Node.js + Express
+- Firebase Auth
+- Cloud Firestore
 
 ### AI / OCR
-| Technology | Purpose |
-|-----------|---------|
-| Google Vision API | Primary OCR engine |
-| Tesseract | Fallback OCR (offline-capable) |
-| Claude API | LLM data structuring |
-| FastAPI (Python) | AI microservice |
+- Google Vision API
+- Tesseract OCR
+- Claude API
+- FastAPI
 
 ### Infrastructure
-| Service | Purpose |
-|---------|---------|
-| Firebase Hosting | Frontend deployment (CDN + SSL) |
-| Firebase Auth | Identity management |
-| Cloud Firestore | Scalable document database |
+- Firebase Hosting
+- Firestore security rules
+- Cloud Build CI/CD
 
 ---
 
-## <a id="getting-started"></a>🚀 Getting Started
+## <a id="getting-started"></a>Getting Started
 
 ### Prerequisites
 - Node.js 20+
 - npm 10+
-- Firebase CLI (`npm i -g firebase-tools`)
+- Firebase CLI installed globally
+- Google Cloud credentials for Vision API
+- Claude API key for LLM extraction
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/relix-main.git
+git clone https://github.com/chandrakoushik487/relix-main.git
 cd relix-main
-
-# Install root dependencies
 npm install
-
-# Install frontend dependencies
 cd client
 npm install
-
-# Configure environment variables
-cd ..
-cp .env.example .env
-# Edit .env with your API keys (Firebase, Mapbox, Google Vision, etc.)
 ```
 
 ### Development
 
 ```bash
-# Start full stack (client + server)
+# From project root
 npm run dev
-
-# Or run frontend only
-cd client
-npm run dev
-# → http://localhost:3500
 ```
 
-### Environment Notes
-
-- Frontend Firebase config uses `NEXT_PUBLIC_FIREBASE_*` values in `client/.env.local`.
-- Server Firebase Admin uses `FIREBASE_CREDENTIALS_PATH` / `GOOGLE_APPLICATION_CREDENTIALS` in `server/.env`.
-- Current Firestore rules require authenticated access and enforce field-level constraints for `issues` and `tasks`.
-- If queries need composite indexes, deploy `firestore.indexes.json` after creating missing indexes from Firebase console prompts.
-
-### Production Build & Deploy
+### Production Build
 
 ```bash
-# Build the frontend
 cd client
 npm run build
-
-# Deploy to Firebase Hosting
-npx firebase-tools deploy --only hosting:main --project relix-6218b
 ```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 relix-main/
 ├── client/                  # Next.js frontend application
-│   ├── src/
-│   │   ├── app/            # Next.js app router (pages)
-│   │   ├── components/     # Reusable UI components
-│   │   ├── lib/            # Utilities & Firebase config
-│   │   └── services/       # API service layer
-│   └── public/             # Static assets
-├── server/                  # Node.js/Express API server
-│   ├── config/             # Database & service config
-│   ├── middleware/          # Auth, validation middleware
-│   ├── models/             # Data models
-│   ├── routes/             # API endpoints
-│   ├── services/           # Business logic
-│   └── utils/              # Helper functions
+├── server/                  # Node.js / Express API server
 ├── ai-service/              # Python FastAPI AI microservice
-│   └── main.py             # OCR + LLM pipeline
+├── functions/               # Firebase cloud functions
 ├── docs/                    # Project documentation
-│   └── internal/           # Design specs & planning docs
-├── firebase.json            # Firebase services configuration
+├── firebase.json            # Firebase configuration
 ├── firestore.rules          # Firestore security rules
-├── firestore.indexes.json   # Firestore composite indexes
-└── .env.example             # Environment variables template
+└── firestore.indexes.json   # Firestore indexes
 ```
 
 ---
 
-## 🔐 Security
-
-- **Authentication** — Firebase Auth with email/password
-- **Authorization** — Firestore Security Rules enforce role-based access
-- **Rules-aware writes** — Task update permissions depend on admin claim or `assignedTo == request.auth.uid`
-- **Input validation** — Zod schemas on client and server
-- **XSS prevention** — HTML/script tag stripping on all inputs
-- **Rate limiting** — Express rate-limit on all API endpoints
-- **HTTPS** — Enforced via Firebase Hosting
+## Links
+- Live Demo: https://relix-mvp-submission.web.app
+- GitHub: https://github.com/chandrakoushik487/relix-main
 
 ---
 
-## 🌐 Live Demo
-
-**MVP Submission:** [https://relix-mvp-submission.web.app](https://relix-mvp-submission.web.app)
-
-**Development Site:** [https://relix-6218b.web.app](https://relix-6218b.web.app)
-
----
-
-## 📄 License
-
-This project is built for the **Google Developer Groups Solution Challenge 2026**.
-
----
+## Mission
+RELIX is built to ensure no community goes unserved during a disaster because their field reports could not be digitized fast enough.
 
 <p align="center">
   Built with ❤️ for communities that need it most
