@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(taskkill /f /im node.exe)",
-      "Bash(node server.js)",
-      "Bash(npm run *)"
-    ]
-  }
-}
