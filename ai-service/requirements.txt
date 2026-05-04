@@ -2,8 +2,16 @@ fastapi==0.110.1
 uvicorn==0.29.0
 pydantic==2.6.4
 httpx==0.27.0
-pytesseract==0.3.10
 python-dotenv==1.0.1
-google-cloud-vision==3.7.1
-google-generativeai==0.3.1
 python-multipart==0.0.9
+
+# Google AI / OCR
+google-generativeai==0.3.1
+google-cloud-vision==3.7.1
+
+# Firebase Admin SDK (explicit service-account auth — no ADC needed)
+firebase-admin==6.5.0
+
+# Image processing
+Pillow==10.3.0
+pytesseract==0.3.10
