@@ -8,7 +8,7 @@
   "hosting": [
     {
       "target": "main",
-      "public": "public",
+      "public": "client/out",
       "cleanUrls": true,
       "ignore": [
         "firebase.json",
@@ -18,7 +18,7 @@
     },
     {
       "target": "mvp",
-      "public": "client/out",
+      "public": "public",
       "cleanUrls": true,
       "ignore": [
         "firebase.json",
