@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -16,6 +16,7 @@ import {
   Activity,
   Maximize2
 } from 'lucide-react';
+import { analyticsService } from '@/services/api';
 
 const InsightCard = ({ title, content, type }) => (
   <div className={`glass-card p-6 border-l-4 transition-all hover:scale-[1.02] ${
@@ -37,6 +38,42 @@ const InsightCard = ({ title, content, type }) => (
 );
 
 export default function AnalyticsPage() {
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  const handleExport = async () => {
+    setExportError('');
+    setIsExporting(true);
+
+    try {
+      const response = await analyticsService.getDashboardAnalytics();
+      const payload = response?.data || response;
+      const analytics = payload.success && payload.data ? payload.data : payload;
+      const rows = [
+        'Category,Count',
+        `Critical Issues,${analytics.critical || analytics.critical_issues || 0}`,
+        `Assigned Tasks,${analytics.assigned || analytics.assigned_operations || 0}`,
+        `Resolved Incidents,${analytics.resolved || analytics.resolved_incidents || 0}`,
+        `Active Volunteers,${analytics.volunteers || analytics.active_volunteers || 0}`
+      ];
+
+      const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `relix-intel-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export Intel failed:', error);
+      setExportError(error.message || 'Export failed, please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-8 space-y-10 animate-in fade-in duration-500">
       {/* Header */}
@@ -52,11 +89,22 @@ export default function AnalyticsPage() {
           <button className="bg-[#0A0A0A] border border-white/5 text-zinc-400 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:text-white transition-all">
             <Filter size={14} /> Refine Data
           </button>
-          <button className="bg-white text-black px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-zinc-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-            <Download size={14} /> Export Intel
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="bg-white text-black px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-zinc-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] disabled:opacity-60"
+          >
+            <Download size={14} /> {isExporting ? 'Exporting...' : 'Export Intel'}
           </button>
         </div>
       </div>
+
+      {exportError && (
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {exportError}
+        </div>
+      )}
 
       {/* AI Insights Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

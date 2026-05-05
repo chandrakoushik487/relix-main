@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useChartData } from '@/lib/useChartData';
 import { useIncidents } from '@/hooks/useIncidents';
+import { analyticsService } from '@/services/api';
 import Link from 'next/link';
 import { 
   AlertTriangle, 
@@ -89,14 +90,12 @@ export default function Dashboard() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      // Get data from analytics API
-      const response = await fetch('/api/analytics');
-      const data = await response.json();
-      
-      // Create CSV content
-      const csvContent = `Category,Count\nCritical Issues,${data.critical || 0}\nAssigned Tasks,${data.assigned || 0}\nResolved Incidents,${data.resolved || 0}\nActive Volunteers,${data.volunteers || 0}`;
-      
-      // Create and download file
+      const response = await analyticsService.getDashboardAnalytics();
+      const data = response?.data || response;
+      const analytics = response?.success && response?.data ? response.data : data;
+
+      const csvContent = `Category,Count\nCritical Issues,${analytics.critical || analytics.critical_issues || 0}\nAssigned Tasks,${analytics.assigned || analytics.assigned_operations || 0}\nResolved Incidents,${analytics.resolved || analytics.resolved_incidents || 0}\nActive Volunteers,${analytics.volunteers || analytics.active_volunteers || 0}`;
+
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -106,11 +105,10 @@ export default function Dashboard() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
       alert('Data exported successfully!');
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
+      alert(error?.message || 'Export failed. Please try again.');
     } finally {
       setExporting(false);
     }

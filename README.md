@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="client/public/relix_logo-removebg-preview.svg" alt="RELIX Logo" width="220" />
 </p>
 

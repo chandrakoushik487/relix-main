@@ -8,7 +8,8 @@ import {
   Plus,
   ArrowUpRight,
   FilterX,
-  Loader2
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import IssueEditor from '@/components/IssueEditor';
@@ -34,10 +35,18 @@ const IssueStatus = ({ status }) => {
 export default function IncidentFeedPage() {
   const { incidents, loading, error, isLive, refetch } = useIncidents();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ region: '', status: '', type: '', severity: '' });
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   
+  const filterOptions = {
+    region: ['District 9', 'Central Shelter', 'Old Town', 'Eastern Pass', 'Sector 4', 'Zone B'],
+    status: ['Critical', 'High', 'Medium', 'Resolved', 'Pending'],
+    type: ['Health', 'Logistics', 'Infrastructure', 'Natural Disaster', 'Safety'],
+    severity: ['Critical', 'High', 'Medium', 'Low']
+  };
+
   const mockIssues = [
     { id: 'ISS-4821', title: 'Severe Water Contamination', type: 'Health', region: 'District 9', status: 'Critical', time: '2m ago' },
     { id: 'ISS-4820', title: 'Flash Flood Warning', type: 'Natural Disaster', region: 'District 9', status: 'Critical', time: '14m ago' },
@@ -56,22 +65,40 @@ export default function IncidentFeedPage() {
     return incidents.length > 0 ? incidents : mockIssues;
   }, [incidents, error]);
 
-  // Filter issues based on search query
+  const handleToggleFilter = (filterKey) => {
+    const options = filterOptions[filterKey];
+    const currentIndex = options.indexOf(filters[filterKey]);
+    const nextValue = currentIndex < 0 ? options[0] : options[currentIndex + 1] || '';
+    setFilters((prev) => ({ ...prev, [filterKey]: nextValue }));
+  };
+
+  const handleClearFilter = (filterKey) => {
+    setFilters((prev) => ({ ...prev, [filterKey]: '' }));
+  };
+
   const filteredIssues = useMemo(() => {
-    if (!searchQuery.trim()) return baseIssues;
-    
-    const query = searchQuery.toLowerCase();
-    return baseIssues.filter(issue => 
-      (issue.id || '').toLowerCase().includes(query) ||
-      (issue.title || '').toLowerCase().includes(query) ||
-      (issue.region || '').toLowerCase().includes(query) ||
-      (issue.type || '').toLowerCase().includes(query) ||
-      (issue.status || '').toLowerCase().includes(query)
-    );
-  }, [baseIssues, searchQuery]);
+    return baseIssues.filter((issue) => {
+      const matchesSearch = !searchQuery.trim() || [
+        issue.id,
+        issue.title,
+        issue.region,
+        issue.type,
+        issue.status,
+        issue.severity
+      ].some(value => (value || '').toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesRegion = !filters.region || (issue.region || '').toLowerCase() === filters.region.toLowerCase();
+      const matchesStatus = !filters.status || (issue.status || '').toLowerCase() === filters.status.toLowerCase();
+      const matchesType = !filters.type || (issue.type || '').toLowerCase() === filters.type.toLowerCase();
+      const matchesSeverity = !filters.severity || ((issue.severity || issue.status || '').toLowerCase() === filters.severity.toLowerCase());
+
+      return matchesSearch && matchesRegion && matchesStatus && matchesType && matchesSeverity;
+    });
+  }, [baseIssues, filters, searchQuery]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
+    setFilters({ region: '', status: '', type: '', severity: '' });
     refetch();
   };
 
@@ -176,12 +203,21 @@ export default function IncidentFeedPage() {
         </div>
         
         <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto no-scrollbar">
-          {['Region', 'Status', 'Type', 'Severity'].map((filter) => (
-            <button key={filter} className="bg-[#030303] border border-[#1A1A1A] hover:border-white/10 px-4 py-3 rounded-xl text-[11px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap transition-all">
-              {filter}
-              <ChevronDown size={14} className="opacity-50" />
-            </button>
-          ))}
+          {['region', 'status', 'type', 'severity'].map((filterKey) => {
+            const label = filterKey.charAt(0).toUpperCase() + filterKey.slice(1);
+            const currentValue = filters[filterKey] || 'All';
+            return (
+              <button
+                key={filterKey}
+                type="button"
+                onClick={() => handleToggleFilter(filterKey)}
+                className={`bg-[#030303] border border-[#1A1A1A] hover:border-white/10 px-4 py-3 rounded-xl text-[11px] font-bold ${filters[filterKey] ? 'text-white' : 'text-zinc-400'} uppercase tracking-widest flex items-center gap-2 whitespace-nowrap transition-all`}
+              >
+                {label}: {currentValue}
+                <ChevronDown size={14} className="opacity-50" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
