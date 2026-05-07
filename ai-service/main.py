@@ -87,8 +87,11 @@ def health_check():
         "ocr_api_key_set": bool(os.getenv("GOOGLE_AI_STUDIO_API_KEY")),
     }
 
+@app.get("/ai/health")
+def ai_health_check():
+    return {"status": "OK", "service": "RELIX AI OCR/LLM (via /ai)"}
 
-# ── 8. Process image endpoint ─────────────────────────────────────────────────
+# Task 59 & 61: OCR & Structure endpoints
 @app.post("/api/ai/process")
 async def process_document(file: UploadFile = File(...)):
     """

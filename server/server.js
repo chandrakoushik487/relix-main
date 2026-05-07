@@ -1,4 +1,5 @@
 import express from 'express';
+import { onRequest } from 'firebase-functions/v2/https';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -17,6 +18,17 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
 
+let isReady = false;
+let initError = null;
+
+// Initialization Guard Middleware
+app.use((req, res, next) => {
+  if (isReady) return next();
+  if (initError) return res.status(500).json({ success: false, error: 'Server initialization failed' });
+  res.set('Retry-After', '5');
+  return res.status(503).json({ success: false, message: 'Server is starting up, please try again in a few seconds.' });
+});
+
 // Middleware
 app.use(helmet());
 app.use(cors());
@@ -26,7 +38,11 @@ app.use('/api', apiLimiter);
 
 // Basic healthcheck
 app.get('/health', (req, res) => {
-  res.status(200).json({ success: true, timestamp: new Date() });
+  res.status(200).json({ success: true, timestamp: new Date(), service: 'relix-server' });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ success: true, timestamp: new Date(), service: 'relix-server-api' });
 });
 
 import uploadRoutes from './routes/uploadRoutes.js';
@@ -70,10 +86,13 @@ const initServer = async () => {
 
   await connectQueue();
   
-  app.listen(PORT, () => {
-    logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  });
+  isReady = true;
+  logger.info('Server initialization complete. Ready to handle requests.');
 };
 
-initServer();
+initServer().catch(err => {
+  initError = err;
+  console.error('initServer failed:', err);
+});
 
+export const api = onRequest({ cors: true, maxInstances: 10 }, app);

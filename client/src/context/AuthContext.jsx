@@ -15,68 +15,32 @@ export const AuthProvider = ({ children }) => {
   const tokenRefreshRef = useRef(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Clear any existing token-refresh timer
-      if (tokenRefreshRef.current) {
-        clearInterval(tokenRefreshRef.current);
-        tokenRefreshRef.current = null;
-      }
-
-      if (firebaseUser) {
-        setUser(firebaseUser);
-
-        // ── Set auth cookie ──────────────────────────────────────────────────
-        // BUG FIX 1: token can expire mid-session; refresh it every 55 min
-        const setTokenCookie = async () => {
-          try {
-            // force=true refreshes the token even if it hasn't expired yet
-            const token = await firebaseUser.getIdToken(/* forceRefresh */ false);
-            document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Lax`;
-          } catch {
-            // Token refresh failed (user may have been deleted/disabled)
-            document.cookie = 'firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        
+        // Get JWT token and set cookie for middleware
+        const token = await user.getIdToken();
+        document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Lax`;
+        
+        // Fetch role from Firestore (Source of Truth)
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setRole(userData.role);
+            localStorage.setItem('userRole', userData.role);
+          } else {
+            // Fallback for new accounts where Firestore might be lagging or Google accounts without docs
+            const defaultRole = user.displayName || localStorage.getItem('userRole') || 'NGO Staff';
+            setRole(defaultRole);
+            localStorage.setItem('userRole', defaultRole);
           }
-        };
-
-        await setTokenCookie();
-
-        // Refresh token every 55 minutes so the cookie never expires mid-session
-        tokenRefreshRef.current = setInterval(setTokenCookie, 55 * 60 * 1000);
-
-        // ── Resolve role ────────────────────────────────────────────────────
-        // BUG FIX 2: stale localStorage role from a previous user's session
-        // is cleared on every new auth event instead of reused blindly.
-        const savedRole = localStorage.getItem('userRole');
-        const savedRoleUid = localStorage.getItem('userRoleUid');
-
-        // Only trust the cached role if it belongs to THIS user
-        if (savedRole && savedRoleUid === firebaseUser.uid) {
-          setRole(savedRole);
-        } else {
-          // Clear any stale cache from a different user
-          localStorage.removeItem('userRole');
-          localStorage.removeItem('userRoleUid');
-
-          try {
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              const resolvedRole = userData.role || 'NGO Staff';
-              setRole(resolvedRole);
-              localStorage.setItem('userRole', resolvedRole);
-              localStorage.setItem('userRoleUid', firebaseUser.uid);
-            } else {
-              // BUG FIX 3: displayName is set to the role string on login,
-              // not an actual display name — fall back to a sane default.
-              const resolvedRole = 'NGO Staff';
-              setRole(resolvedRole);
-              localStorage.setItem('userRole', resolvedRole);
-              localStorage.setItem('userRoleUid', firebaseUser.uid);
-            }
-          } catch (error) {
-            console.error('[AuthContext] Error fetching user role:', error);
-            setRole('NGO Staff');
-          }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+          // Use localStorage as fallback if Firestore fails
+          const cachedRole = localStorage.getItem('userRole') || 'NGO Staff';
+          setRole(cachedRole);
         }
       } else {
         // Signed out — clear everything

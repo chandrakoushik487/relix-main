@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "description": "RELIX API Server",
   "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
-    "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "functions-framework --target=api"
   },
   "dependencies": {
+    "@google-cloud/functions-framework": "^5.0.2",
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/logging-winston": "^6.0.1",
     "@google-cloud/secret-manager": "^6.1.2",
@@ -19,6 +23,7 @@
     "express": "^4.19.2",
     "express-rate-limit": "^7.2.0",
     "firebase-admin": "^13.8.0",
+    "firebase-functions": "^7.2.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.1",

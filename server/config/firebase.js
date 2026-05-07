@@ -94,10 +94,9 @@ const initializeFirebase = () => {
             // Default to standard initialization
             admin.initializeApp();
             logger.info('Firebase Admin initialized with default settings.');
-            }
-
-            logger.error('Missing Firebase credentials. Please set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_CREDENTIALS_PATH, or FIREBASE_CREDENTIALS_JSON in .env.');
         }
+
+        logger.error('Missing Firebase credentials. Please set GOOGLE_APPLICATION_CREDENTIALS, FIREBASE_CREDENTIALS_PATH, or FIREBASE_CREDENTIALS_JSON in .env.');
     } catch (error) {
         logger.error(`Error initializing Firebase Admin: ${error.message}`);
     }

@@ -34,12 +34,13 @@ export default function LandingPage() {
   const { user, role, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && user) {
-      const dashboardPath = role === 'Volunteer' ? '/volunteer/dashboard' : '/dashboard';
-      router.push(dashboardPath);
-    }
-  }, [user, role, loading, router]);
+  // Removed auto-redirect to allow user to see landing page even if logged in
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     const dashboardPath = role === 'Volunteer' ? '/volunteer/dashboard' : '/dashboard';
+  //     router.push(dashboardPath);
+  //   }
+  // }, [user, role, loading, router]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -71,7 +72,7 @@ export default function LandingPage() {
             <Link href="/login" className="text-[13px] font-semibold px-5 py-2 text-zinc-400 hover:text-white transition-all">
               Sign In
             </Link>
-            <Link href="/login" className="text-[13px] font-semibold px-5 py-2 rounded-full bg-white text-black hover:bg-zinc-200 transition-all">
+            <Link href="/login?mode=signup" className="text-[13px] font-semibold px-5 py-2 rounded-full bg-white text-black hover:bg-zinc-200 transition-all">
               Get Started
             </Link>
           </div>
@@ -101,8 +102,11 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <Link href="/dashboard" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_40px_rgba(99,102,241,0.3)] transition-all flex items-center justify-center gap-2 group">
-              Launch Dashboard 
+            <Link 
+              href="/login?mode=signup" 
+              className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_0_40px_rgba(99,102,241,0.3)] transition-all flex items-center justify-center gap-2 group"
+            >
+              Get Started Now
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <a href="#features" className="w-full sm:w-auto px-8 py-4 bg-zinc-900 border border-white/10 hover:border-white/20 text-white font-bold rounded-xl transition-all flex items-center justify-center">

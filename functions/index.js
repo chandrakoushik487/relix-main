@@ -7,8 +7,28 @@ import { writeToFirestore } from './src/firestore.js';
 // Initialize Firebase Admin
 initializeApp();
 
-// OCR Pipeline: Trigger on GCS Uploads, process OCR, save to data lake, sync to Firestore
-export const processUploadedDocument = onObjectFinalized(
+// Initialize GC clients
+const visionClient = new vision.ImageAnnotatorClient();
+const pubsubClient = new PubSub();
+const bigqueryClient = new BigQuery();
+
+const TOPIC_NAME = 'incident-events';
+const DATASET_ID = 'relix_analytics';
+const TABLE_ID = 'incident_logs';
+
+// Initialize Vertex AI (Gemini)
+const vertex_ai = new VertexAI({ project: process.env.GCLOUD_PROJECT, location: 'us-central1' });
+const generativeModel = vertex_ai.getGenerativeModel({
+  model: 'gemini-1.5-flash-001',
+  generationConfig: {
+    maxOutputTokens: 2048,
+    temperature: 0.1,
+    topP: 0.8,
+  },
+});
+
+// Task 4 & Task 5a: Trigger on GCS Uploads, perform OCR, and structure with Vertex AI
+export const processImage = onObjectFinalized(
   {
     bucket: process.env.GCS_UPLOAD_BUCKET || 'relix-6218b-relix-uploads',
     memory: '1GiB',
