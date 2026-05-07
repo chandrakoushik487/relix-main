@@ -1,15 +1,11 @@
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
-import { onMessagePublished } from 'firebase-functions/v2/pubsub';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp } from 'firebase-admin/app';
-import vision from '@google-cloud/vision';
-import { VertexAI } from '@google-cloud/vertexai';
-import { PubSub } from '@google-cloud/pubsub';
-import { BigQuery } from '@google-cloud/bigquery';
+import { logger } from 'firebase-functions';
+import { processOCR } from './src/ocr.js';
+import { saveToDataLake } from './src/storage.js';
+import { writeToFirestore } from './src/firestore.js';
 
 // Initialize Firebase Admin
 initializeApp();
-const db = getFirestore();
 
 // Initialize GC clients
 const visionClient = new vision.ImageAnnotatorClient();
@@ -36,66 +32,57 @@ export const processImage = onObjectFinalized(
   {
     bucket: process.env.GCS_UPLOAD_BUCKET || 'relix-6218b-relix-uploads',
     memory: '1GiB',
-    timeoutSeconds: 120,
+    timeoutSeconds: 540, // 9 minutes
   },
   async (event) => {
-    const fileBucket = event.data.bucket;
-    const filePath = event.data.name;
-    const gcsUri = `gs://${fileBucket}/${filePath}`;
-    
+    const bucket = event.bucket;
+    const filePath = event.name;
+    const file = event.data;
+
+    // Only process PDFs and images
+    const mimeType = file.contentType;
+    if (!['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mimeType)) {
+      logger.info(`Skipping non-document file: ${filePath}`);
+      return;
+    }
+
+    const docId = generateDocId(filePath);
+
+    logger.info(`Starting OCR pipeline for docId: ${docId}, file: ${filePath}`);
+
     try {
-      // Step 1: Perform OCR using Google Cloud Vision API
-      const [result] = await visionClient.textDetection(gcsUri);
-      const detections = result.textAnnotations;
-      const rawText = detections.length > 0 ? detections[0].description : '';
-      
-      if (!rawText) return;
+      // Step 1: OCR Processing
+      logger.info(`Stage: OCR Processing - docId: ${docId}`);
+      const ocrResult = await processOCR(bucket, filePath);
+      logger.info(`OCR completed for docId: ${docId}, confidence: ${ocrResult.confidence}`);
 
-      // Step 2: Use Vertex AI (Gemini) to structure the data
-      const prompt = `Extract location, urgency, issueType, peopleAffected, description from this OCR text as JSON: ${rawText}`;
-      const req = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
-      const streamingResp = await generativeModel.generateContent(req);
-      const responseText = streamingResp.response.candidates[0].content.parts[0].text;
-      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const structuredData = JSON.parse(cleanJson);
+      // Step 2: Save to Data Lake
+      logger.info(`Stage: Data Lake Save - docId: ${docId}`);
+      const lakeRef = await saveToDataLake(ocrResult, docId);
+      logger.info(`Data lake saved for docId: ${docId}, lakeRef: ${lakeRef}`);
 
-      // Step 3: Write to Firestore
-      const incidentRef = db.collection('issues').doc();
-      const incidentData = {
-        ...structuredData,
-        originalImageUri: gcsUri,
-        status: 'pending',
-        createdAt: new Date(),
-      };
-      await incidentRef.set(incidentData);
-
-      // Task 11: Publish to Pub/Sub for analytics
-      const messageBuffer = Buffer.from(JSON.stringify({
-        incidentId: incidentRef.id,
-        ...incidentData,
-        timestamp: new Date().toISOString()
-      }));
-      await pubsubClient.topic(TOPIC_NAME).publishMessage({ data: messageBuffer });
-
-      console.log(`Successfully processed incident: ${incidentRef.id}`);
+      // Step 3: Sync to Firestore
+      logger.info(`Stage: Firestore Sync - docId: ${docId}`);
+      await writeToFirestore(ocrResult, docId, lakeRef, 'ocr_complete');
+      logger.info(`Firestore synced for docId: ${docId}`);
 
     } catch (error) {
-      console.error(`Error processing image ${gcsUri}:`, error);
+      logger.error(`Pipeline failed for docId: ${docId}`, error);
+      // Still try to save to Firestore with failed status
+      try {
+        await writeToFirestore({}, docId, '', 'ocr_failed', error.message);
+      } catch (fsError) {
+        logger.error(`Failed to write failure status to Firestore for docId: ${docId}`, fsError);
+      }
     }
   }
 );
 
-// Task 11: Pub/Sub -> BigQuery analytics pipeline
-export const streamToBigQuery = onMessagePublished(TOPIC_NAME, async (event) => {
-  const data = event.data.message.json;
-  
-  try {
-    await bigqueryClient
-      .dataset(DATASET_ID)
-      .table(TABLE_ID)
-      .insert([data]);
-    console.log(`Streamed incident ${data.incidentId} to BigQuery`);
-  } catch (error) {
-    console.error('BigQuery insert error:', JSON.stringify(error));
-  }
-});
+function generateDocId(filePath) {
+  // Use filename without extension as docId, or generate UUID if needed
+  const parts = filePath.split('/');
+  const filename = parts[parts.length - 1];
+  return filename.split('.')[0] || require('crypto').randomUUID();
+}
+
+

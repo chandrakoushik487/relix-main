@@ -49,7 +49,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white selection:bg-indigo-500/30 font-sans">
+    <div className="min-h-screen bg-transparent text-white selection:bg-indigo-500/30 font-sans">
       {/* Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-500 ${
         scrolled ? 'bg-black/80 backdrop-blur-xl border-b border-white/5 py-4' : 'bg-transparent py-6'
@@ -81,7 +81,8 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-48 pb-32 overflow-hidden">
-        {/* Animated Background Gradient */}
+        {/* Full-page grid overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.12),transparent_28%),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:24px_24px,24px_24px,24px_24px] opacity-40 pointer-events-none"></div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-indigo-600/20 blur-[120px] rounded-full opacity-30 pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
@@ -179,6 +180,48 @@ export default function LandingPage() {
               description="Built to function in low-bandwidth environments with offline-first data synchronization."
               delay={500}
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Core Functions */}
+      <section id="core-functions" className="py-32 relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-24">
+            <span className="text-sm uppercase tracking-[0.35em] text-indigo-400">Core Functions</span>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 font-display">What RELIX does for response teams</h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto">A unified workflow from field reporting to volunteer dispatch, with secure intelligence and mission control built in.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="glass-card p-8">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 mb-6 border border-indigo-500/20">
+                <Map size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-3 font-display">Incident Intake</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">Collect reports from communities, mobile responders, and OCR-powered damage uploads so no critical event is missed.</p>
+            </div>
+            <div className="glass-card p-8">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 mb-6 border border-indigo-500/20">
+                <Cpu size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-3 font-display">Intelligent Prioritization</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">Use AI to transform raw reports into priority incidents, help teams focus on the highest-risk locations first.</p>
+            </div>
+            <div className="glass-card p-8">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 mb-6 border border-indigo-500/20">
+                <Users size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-3 font-display">Volunteer Dispatch</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">Match available responders to incidents by location, skill set, and urgency, then dispatch with one click.</p>
+            </div>
+            <div className="glass-card p-8">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 mb-6 border border-indigo-500/20">
+                <Activity size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-3 font-display">Mission Visibility</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">Track response progress, volunteer status, and outcome metrics through dashboards built for crisis operations.</p>
+            </div>
           </div>
         </div>
       </section>

@@ -1,0 +1,18 @@
+{
+  "docId": "sample-doc-123",
+  "filename": "incident-report.pdf",
+  "status": "ocr_complete",
+  "raw_text": "This is a sample OCR extracted text from the document. It contains details about a civic issue...",
+  "confidence": 0.95,
+  "pages": 2,
+  "lakeRef": "ocr-results/2024-05-05/sample-doc-123.json",
+  "created_at": {
+    "_seconds": 1714886400,
+    "_nanoseconds": 0
+  },
+  "updated_at": {
+    "_seconds": 1714886400,
+    "_nanoseconds": 0
+  },
+  "source": "ocr_pipeline"
+}

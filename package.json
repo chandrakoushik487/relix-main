@@ -12,9 +12,14 @@
     "dev:client": "npm run dev --workspace=client",
     "dev:server": "npm run dev --workspace=server",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "build:client": "npm run build --workspace=client",
+    "postbuild:client": "node -e \"require('fs').copyFileSync('index.html', 'client/out/index.html')\"",
+    "build": "npm run build:client",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "deploy": "firebase deploy --only hosting:main --project relix-6218b --non-interactive"
+    "deploy:main": "firebase deploy --only hosting:main --project relix-6218b --non-interactive",
+    "deploy:mvp": "firebase deploy --only hosting:mvp --project relix-6218b --non-interactive",
+    "deploy": "npm run build && npm run deploy:main"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -29,6 +34,8 @@
     "depd": "^2.0.0",
     "enhanced-resolve": "^5.20.1",
     "firebase": "^12.12.1",
+    "proto-list": "^1.2.4",
+    "registry-url": "^7.2.0",
     "spawn-command": "^1.0.0"
   }
 }

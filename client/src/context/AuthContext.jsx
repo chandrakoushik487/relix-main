@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -10,6 +10,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Track whether the token refresh interval is running
+  const tokenRefreshRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -40,23 +43,31 @@ export const AuthProvider = ({ children }) => {
           setRole(cachedRole);
         }
       } else {
+        // Signed out — clear everything
         setUser(null);
         setRole(null);
         localStorage.removeItem('userRole');
+        localStorage.removeItem('userRoleUid');
         document.cookie = 'firebase-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
+
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (tokenRefreshRef.current) {
+        clearInterval(tokenRefreshRef.current);
+      }
+    };
   }, []);
 
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
-      localStorage.removeItem('userRole');
+      // Cleanup handled by onAuthStateChanged listener above
     } catch (error) {
-      console.error("Sign out error", error);
+      console.error('[AuthContext] Sign out error:', error);
     }
   };
 
