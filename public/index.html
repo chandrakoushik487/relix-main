@@ -82,7 +82,7 @@
     .page-shell {
       position: relative;
       z-index: 1;
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 0 32px 96px;
     }
@@ -220,16 +220,17 @@
     .hero {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: 1fr 1fr;
       align-items: center;
-      gap: 48px;
+      gap: 64px;
       padding: 140px 0 80px;
     }
 
     .hero-copy {
-      max-width: 640px;
+      max-width: 600px;
       display: grid;
       gap: 28px;
+      overflow: visible;
     }
 
     .hero-copy p.overline {
@@ -244,11 +245,13 @@
     .hero-copy h1 {
       margin: 0;
       font-family: 'Syne', sans-serif;
-      font-size: clamp(3.4rem, 6vw, 5.5rem);
-      line-height: 0.94;
-      letter-spacing: -0.04em;
-      max-width: 720px;
+      font-size: clamp(2.8rem, 5vw, 4.2rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      max-width: 100%;
       color: #f8fafc;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     .hero-copy p.lead {
@@ -316,10 +319,12 @@
       min-height: 620px;
       background: #090b14;
       border: 1px solid rgba(148,163,184,0.12);
-      overflow: hidden;
-      display: grid;
-      place-items: center;
+      overflow: visible;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 28px;
+      width: 100%;
     }
 
     .hero-visual::before {
@@ -338,14 +343,15 @@
     .map-panel {
       position: relative;
       width: 100%;
-      max-width: 520px;
-      min-height: 520px;
+      max-width: 500px;
+      height: 500px;
       border: 1px solid rgba(148,163,184,0.12);
       display: grid;
       place-items: center;
       color: #fff;
       padding: 26px;
       box-shadow: 0 28px 80px rgba(0,0,0,0.35);
+      flex-shrink: 0;
     }
 
     .map-grid {
