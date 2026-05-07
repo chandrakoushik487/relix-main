@@ -1,12 +1,10 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
+import os from 'os';
 
-// Fix #23: Use absolute path so uploads work regardless of working directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dir = path.resolve(__dirname, '../../uploads');
+// Fix: Use os.tmpdir() for Cloud Run / Firebase Functions compatibility
+const dir = path.join(os.tmpdir(), 'uploads');
 if (!fs.existsSync(dir)){
     fs.mkdirSync(dir, { recursive: true });
 }

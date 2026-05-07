@@ -1,41 +1,25 @@
 import { NextResponse } from 'next/server';
 
-/**
- * Proxy function for Relix platform.
- * Satisfies the requirement for a 'proxy' export in newer Next.js environments.
- */
-export default async function proxy(request) {
+export function middleware(request) {
+  const token = request.cookies.get('firebase-token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Paths that require authentication
-  const isProtectedRoute = pathname.startsWith('/dashboard') ||
-                           pathname.startsWith('/emergency-map') ||
-                           pathname.startsWith('/data-lake') ||
-                           pathname.startsWith('/incident-feed');
+  // Protected routes start with (protected) in the folder structure 
+  // but they appear as /dashboard, /volunteer, etc. in the URL.
+  // We need to define which URL paths are protected.
+  const protectedPaths = ['/dashboard', '/volunteer', '/analytics', '/incident-feed', '/emergency-map', '/data-lake', '/tasks', '/impact', '/profile', '/settings'];
+  
+  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+  const isAuthPage = pathname === '/login';
 
-  // RBAC logic example for /data-lake (Placeholder for Firebase Session Cookies)
-  /*
-  if (pathname.startsWith('/data-lake')) {
-      const session = request.cookies.get('__session');
-      if (!session) {
-          const url = request.nextUrl.clone();
-          url.pathname = '/login';
-          return NextResponse.redirect(url);
-      }
+  if (isProtectedPath && !token) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
-  */
 
-  // Redirect authenticated users away from '/' or '/login' back to dashboard
-  /*
-  if (pathname === '/' || pathname === '/login') {
-    const session = request.cookies.get('__session');
-    if (session) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/dashboard';
-        return NextResponse.redirect(url);
-    }
-  }
-  */
+  // Allow users to see the login page even if authenticated (useful for debugging/switching)
+  // if (isAuthPage && token) {
+  //   return NextResponse.redirect(new URL('/dashboard', request.url));
+  // }
 
   return NextResponse.next();
 }
@@ -44,10 +28,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

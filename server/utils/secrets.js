@@ -30,9 +30,9 @@ export const getSecret = async (secretName) => {
     return secretCache.get(secretName);
   }
 
-  const project = process.env.GOOGLE_PROJECT_ID;
+  const project = process.env.GOOGLE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
   if (!project) {
-    const err = new Error('GOOGLE_PROJECT_ID environment variable is required to access secrets');
+    const err = new Error('GOOGLE_PROJECT_ID or GOOGLE_CLOUD_PROJECT environment variable is required to access secrets');
     logger.error(err.message);
     throw err;
   }

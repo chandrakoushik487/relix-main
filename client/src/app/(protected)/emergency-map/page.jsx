@@ -116,7 +116,7 @@ const darkMapStyle = [
 export default function EmergencyMapPage() {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_MAPS_API_KEY
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   });
 
   const [incidents, setIncidents] = useState([]);

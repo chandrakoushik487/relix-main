@@ -20,28 +20,24 @@ export const AuthProvider = ({ children }) => {
         const token = await user.getIdToken();
         document.cookie = `firebase-token=${token}; path=/; max-age=3600; SameSite=Lax`;
         
-        // Try to get role from localStorage first for speed
-        const savedRole = localStorage.getItem('userRole');
-        
-        if (savedRole) {
-          setRole(savedRole);
-        } else {
-          // Fallback to Firestore or displayName
-          try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              setRole(userData.role);
-              localStorage.setItem('userRole', userData.role);
-            } else {
-              const defaultRole = user.displayName || 'NGO Staff';
-              setRole(defaultRole);
-              localStorage.setItem('userRole', defaultRole);
-            }
-          } catch (error) {
-            console.error("Error fetching user role:", error);
-            setRole('NGO Staff');
+        // Fetch role from Firestore (Source of Truth)
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setRole(userData.role);
+            localStorage.setItem('userRole', userData.role);
+          } else {
+            // Fallback for new accounts where Firestore might be lagging or Google accounts without docs
+            const defaultRole = user.displayName || localStorage.getItem('userRole') || 'NGO Staff';
+            setRole(defaultRole);
+            localStorage.setItem('userRole', defaultRole);
           }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+          // Use localStorage as fallback if Firestore fails
+          const cachedRole = localStorage.getItem('userRole') || 'NGO Staff';
+          setRole(cachedRole);
         }
       } else {
         setUser(null);

@@ -18,6 +18,10 @@ app.add_middleware(
 def health_check():
     return {"status": "OK", "service": "RELIX AI OCR/LLM"}
 
+@app.get("/ai/health")
+def ai_health_check():
+    return {"status": "OK", "service": "RELIX AI OCR/LLM (via /ai)"}
+
 # Task 59 & 61: OCR & Structure endpoints
 @app.post("/api/ai/process")
 async def process_document(file: UploadFile = File(...)):

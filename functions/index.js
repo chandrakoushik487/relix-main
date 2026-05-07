@@ -22,8 +22,8 @@ const TABLE_ID = 'incident_logs';
 
 // Initialize Vertex AI (Gemini)
 const vertex_ai = new VertexAI({ project: process.env.GCLOUD_PROJECT, location: 'us-central1' });
-const generativeModel = vertex_ai.preview.getGenerativeModel({
-  model: 'gemini-1.5-pro-preview-0409',
+const generativeModel = vertex_ai.getGenerativeModel({
+  model: 'gemini-1.5-flash-001',
   generationConfig: {
     maxOutputTokens: 2048,
     temperature: 0.1,
